@@ -92,8 +92,8 @@ function printSpecLine(cfg, spec) {
     const s = spec[pr.k] || {};
     const parts = [
       s.boreMin || s.boreMax ? pr.bore + ' ' + (s.boreMin || '…') + ' – ' + (s.boreMax || '…') : '',
-      s.shaftMin || s.shaftMax ? pr.shaft + ' ' + (s.shaftMin || '…') + ' – ' + (s.shaftMax || '…') : '',
-      s.clrMin || s.clrMax ? 'Spiel ' + (s.clrMin || '…') + ' – ' + (s.clrMax || '…') : ''
+      !cfg.boreOnly && (s.shaftMin || s.shaftMax) ? pr.shaft + ' ' + (s.shaftMin || '…') + ' – ' + (s.shaftMax || '…') : '',
+      !cfg.boreOnly && (s.clrMin || s.clrMax) ? 'Spiel ' + (s.clrMin || '…') + ' – ' + (s.clrMax || '…') : ''
     ].filter(Boolean);
     return parts.length ? (cfg.pairs.length > 1 ? pr.label + ': ' : '') + parts.join(' · ') : '';
   }).filter(Boolean).join('  |  ');
@@ -128,13 +128,13 @@ function printMeasureHtml(order, sheet, cfg) {
       </tbody></table>`;
   } else {
     table = `<table class="pr-m"><thead>
-      <tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * 2 + 1}">${escapeHtml(pr.label)}</th>`).join('')}<th rowspan="2" class="sym">Befund</th></tr>
-      <tr>${cfg.pairs.map(pr => cfg.dirs.map(dr => `<th>${escapeHtml(pr.bore)} ${escapeHtml(dr.label)}</th>`).join('') + cfg.dirs.map(dr => `<th>${escapeHtml(pr.shaft)} ${escapeHtml(dr.label)}</th>`).join('') + '<th>Spiel</th>').join('')}</tr></thead><tbody>
+      <tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${cfg.pairs.map(pr => `<th colspan="${cfg.boreOnly ? cfg.dirs.length : cfg.dirs.length * 2 + 1}">${escapeHtml(pr.label)}</th>`).join('')}<th rowspan="2" class="sym">Befund</th></tr>
+      <tr>${cfg.pairs.map(pr => cfg.dirs.map(dr => `<th>${escapeHtml(pr.bore)} ${escapeHtml(dr.label)}</th>`).join('') + (cfg.boreOnly ? '' : cfg.dirs.map(dr => `<th>${escapeHtml(pr.shaft)} ${escapeHtml(dr.label)}</th>`).join('') + '<th>Spiel</th>')).join('')}</tr></thead><tbody>
       ${res.rows.map(r => `<tr class="${trCls(r.pos)}"><th class="pos">${escapeHtml(r.pos)}</th>
-        ${r.pairs.map(pr => pr.bore.concat(pr.shaft).map(x => v(x.st, pv(x.n, dec))).join('') + v(pr.clr.st, pv(pr.clr.n, dec))).join('')}${symCell(r.st)}</tr>`).join('')}
+        ${r.pairs.map(pr => pr.bore.concat(pr.shaft).map(x => v(x.st, pv(x.n, dec))).join('') + (cfg.boreOnly ? '' : v(pr.clr.st, pv(pr.clr.n, dec)))).join('')}${symCell(r.st)}</tr>`).join('')}
       </tbody></table>`;
   }
-  const specLine = printSpecLine(cfg, d.spec);
+  const specLine = (cfg.boreOnly ? 'nur Gehäusebohrung gemessen' + (printSpecLine(cfg, d.spec) ? ' · ' : '') : '') + printSpecLine(cfg, d.spec);
   const sum = `${res.measured}/${pos.length} gemessen${res.bad ? ' · ' + res.bad + '× außer Toleranz' : ''}${res.obs ? ' · ' + res.obs + '× Verschleißgrenze' : ''}`;
   return `
     <div class="pr-block">

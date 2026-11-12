@@ -2,7 +2,7 @@
 //
 // WICHTIG: Bei jeder Änderung an index.html / js/*.js / style.css die
 // Versionsnummer hochzählen, sonst bekommen Nutzer die alte Version aus dem Cache.
-const CACHE_VERSION = 'befunde-v3';
+const CACHE_VERSION = 'befunde-v4';
 
 const APP_SHELL_FILES = [
   './',

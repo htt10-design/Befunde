@@ -946,3 +946,4 @@ details.collapse[open] > summary::after { content: '▴'; }
   .pr-sketch .sk-pt { fill: #000; }
   .pr-sketch .sk-t { fill: #000; } .pr-sketch .sk-t.pt { fill: #fff; }
 }
+.side-hint { margin: 0; flex: 1; min-width: 180px; }
