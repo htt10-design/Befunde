@@ -101,6 +101,7 @@ function printSpecLine(cfg, spec) {
 
 function printMeasureHtml(order, sheet, cfg) {
   const d = sheet.data[cfg.key] || {};
+  cfg = effCfg(cfg, d);
   const pos = tablePositions(order, sheet, cfg);
   const res = computeTable(cfg, d, pos);
   const dec = cfg.dec || 3;
@@ -139,6 +140,7 @@ function printMeasureHtml(order, sheet, cfg) {
     <div class="pr-block">
       <div class="pr-block-head"><span>${escapeHtml(cfg.title)} <small>(Maße in mm)</small></span><span class="pr-block-sum">${escapeHtml(sum)}</span></div>
       ${specLine ? `<div class="pr-spec">Sollwerte: ${escapeHtml(specLine)}</div>` : '<div class="pr-spec">Sollwerte: ______________________________________________</div>'}
+      ${cfg.sketch ? `<div class="pr-sketch">${sketchSvg(cfg)}<span>${escapeHtml(cfg.sketch === 'liner' ? cfg.planes.length + ' Messebenen · Richtung A = längs (parallel KW), B = quer' : (cfg.points.length === 1 ? 'Messung im OT' : cfg.points.length + ' Messpunkte, Pkt. 1 an KS, im Uhrzeigersinn'))}</span></div>` : ''}
       ${table}
     </div>`;
 }

@@ -49,6 +49,13 @@ const INSPECT_ITEMS = {
 // Messmittel-Vorschläge
 const TOOL_LIST = ['Innenmessschraube', 'Innenmessgerät (Messuhr)', 'Bügelmessschraube', 'Messuhr mit Halter', 'Tiefenmaß', 'Fühlerlehre', 'Messschieber', 'Düsenprüfgerät', 'Endoskop'];
 
+// Messebenen Laufbuchse je nach Anzahl (Schlüssel bleiben gleich → alte Daten passen)
+const PLANE_SETS = {
+  2: [{ k: 'I', label: 'Ebene I (oben)' }, { k: 'II', label: 'Ebene II (unten)' }],
+  3: [{ k: 'I', label: 'Ebene I (oben)' }, { k: 'II', label: 'Ebene II (Mitte)' }, { k: 'III', label: 'Ebene III (unten)' }],
+  4: [{ k: 'I', label: 'Ebene I (oben)' }, { k: 'II', label: 'Ebene II' }, { k: 'III', label: 'Ebene III' }, { k: 'IV', label: 'Ebene IV (unten)' }]
+};
+
 const SHEET_TYPES = [
   {
     id: 'general', group: 'allg', icon: 'doc', label: 'Allgemeines Befundblatt',
@@ -70,7 +77,9 @@ const SHEET_TYPES = [
     desc: 'Überstand im OT je Zylinder',
     measure: [{
       kind: 'points', key: 'pp', title: 'Kolbenüberstand', posKind: 'cyl', dec: 2, unit: 'mm',
-      points: ['Istmaß OT'], pointHint: 'Kolben im OT – Überstand über Dichtfläche Kurbelgehäuse (negativ = Rückstand)',
+      points: ['Istmaß OT'], pointOptions: [1, 2, 3, 4], pointDefault: 1, sketch: 'piston',
+      pointLabels: n => n === 1 ? ['Istmaß OT'] : Array.from({ length: n }, (_, i) => 'Pkt. ' + (i + 1)),
+      pointHint: 'Kolben im OT – Überstand über Dichtfläche Kurbelgehäuse (negativ = Rückstand). Lage der Messpunkte siehe Skizze.',
       neighbor: false, note: true
     }]
   },
@@ -79,9 +88,9 @@ const SHEET_TYPES = [
     desc: 'Innendurchmesser in 3 Ebenen, Ovalität, Konizität + Sichtbefund',
     measure: [{
       kind: 'grid', key: 'lb', title: 'Innendurchmesser Laufbuchse', posKind: 'cyl', dec: 3, unit: 'mm',
-      planes: [{ k: 'I', label: 'Ebene I (oben)' }, { k: 'II', label: 'Ebene II (Mitte)' }, { k: 'III', label: 'Ebene III (unten)' }],
-      dirs: [{ k: 'L', label: 'längs' }, { k: 'Q', label: 'quer' }],
-      dirHint: 'längs = parallel zur Kurbelwelle, quer = 90° dazu'
+      planes: PLANE_SETS[3], planeOptions: [2, 3, 4], planeDefault: 3, sketch: 'liner',
+      dirs: [{ k: 'L', label: 'A längs' }, { k: 'Q', label: 'B quer' }],
+      dirHint: 'A = längs (parallel zur Kurbelwelle), B = quer (90° dazu) – siehe Skizze'
     }],
     inspect: [{ key: 'lbi', title: 'Sichtbefund Laufbuchse', posKind: 'cyl', items: INSPECT_ITEMS.liner }]
   },
@@ -346,8 +355,23 @@ function computeClearance(cfg, data, posList) {
   return { rows: out, bad, obs, measured };
 }
 
+// Messblock mit den im Blatt gewählten Ebenen / Messpunkten
+function effCfg(cfg, data) {
+  data = data || {};
+  if (cfg.planeOptions) {
+    const n = cfg.planeOptions.includes(parseInt(data.planes, 10)) ? parseInt(data.planes, 10) : cfg.planeDefault;
+    return { ...cfg, planes: PLANE_SETS[n], nPlanes: n };
+  }
+  if (cfg.pointOptions) {
+    const n = cfg.pointOptions.includes(parseInt(data.points, 10)) ? parseInt(data.points, 10) : cfg.pointDefault;
+    return { ...cfg, points: cfg.pointLabels(n), nPoints: n };
+  }
+  return cfg;
+}
+
 function computeTable(cfg, data, posList) {
   data = data || {};
+  cfg = effCfg(cfg, data);
   if (cfg.kind === 'grid') return computeGrid(cfg, data, posList);
   if (cfg.kind === 'points') return computePoints(cfg, data, posList);
   return computeClearance(cfg, data, posList);

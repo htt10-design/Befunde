@@ -379,4 +379,56 @@ function generalEditorHtml(order, sheet) {
     </details>`;
 }
 
+// =====================================================================
+// Skizzen für Messblöcke (Editor + Druck)
+// =====================================================================
+const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
+
+function sketchSvg(cfg) {
+  if (cfg.sketch === 'liner') return linerSketch(cfg.planes.length);
+  if (cfg.sketch === 'piston') return pistonSketch(cfg.points.length);
+  return '';
+}
+
+// Laufbuchse: links Schnitt mit Messebenen, rechts Draufsicht mit A (längs) / B (quer)
+function linerSketch(n) {
+  const top = 34, bot = 128;
+  const ys = n === 1 ? [top] : Array.from({ length: n }, (_, i) => top + i * (bot - top) / (n - 1));
+  let s = `<svg class="sk-svg" viewBox="0 0 330 150" xmlns="http://www.w3.org/2000/svg">`;
+  // Schnitt Laufbuchse
+  s += `<path d="M28 14 H122 V24 H108 V142 H42 V24 H28 Z" class="sk-body"/>`;
+  s += `<path d="M42 24 V142 M108 24 V142" class="sk-line"/>`;
+  ys.forEach((y, i) => {
+    s += `<line x1="34" y1="${y}" x2="116" y2="${y}" class="sk-plane"/><text x="124" y="${y + 4}" class="sk-t b">${ROMAN[i]}</text>`;
+  });
+  s += `<text x="75" y="10" class="sk-t s mid">oben (OT)</text><text x="75" y="149" class="sk-t s mid">unten</text>`;
+  // Draufsicht
+  const cx = 245, cy = 76, r = 50;
+  s += `<line x1="170" y1="${cy}" x2="322" y2="${cy}" class="sk-axis"/>`;
+  s += `<text x="168" y="${cy - 6}" class="sk-t s">KS</text><text x="322" y="${cy - 6}" class="sk-t s end">KW-Achse</text>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="${r}" class="sk-body"/><circle cx="${cx}" cy="${cy}" r="${r - 8}" class="sk-line" fill="none"/>`;
+  s += `<path d="M${cx - 34} ${cy} H${cx + 34} M${cx - 26} ${cy - 6} L${cx - 34} ${cy} L${cx - 26} ${cy + 6} M${cx + 26} ${cy - 6} L${cx + 34} ${cy} L${cx + 26} ${cy + 6}" class="sk-arrow a"/>`;
+  s += `<path d="M${cx} ${cy - 34} V${cy + 34} M${cx - 6} ${cy - 26} L${cx} ${cy - 34} L${cx + 6} ${cy - 26} M${cx - 6} ${cy + 26} L${cx} ${cy + 34} L${cx + 6} ${cy + 26}" class="sk-arrow b"/>`;
+  s += `<text x="${cx + 14}" y="${cy - 8}" class="sk-t b">A</text><text x="${cx + 9}" y="${cy + 24}" class="sk-t b">B</text>`;
+  s += `<text x="${cx}" y="146" class="sk-t s mid">A = längs · B = quer</text>`;
+  return s + '</svg>';
+}
+
+// Kolben (Draufsicht): Lage der Messpunkte, Pkt. 1 an der KS, dann im Uhrzeigersinn
+function pistonSketch(n) {
+  const cx = 90, cy = 74, r = 56;
+  let s = `<svg class="sk-svg" viewBox="0 0 200 150" xmlns="http://www.w3.org/2000/svg">`;
+  s += `<line x1="8" y1="${cy}" x2="192" y2="${cy}" class="sk-axis"/><text x="8" y="${cy - 6}" class="sk-t s">KS</text><text x="192" y="${cy - 6}" class="sk-t s end">KGS</text>`;
+  s += `<circle cx="${cx}" cy="${cy}" r="${r}" class="sk-body"/><circle cx="${cx}" cy="${cy}" r="${r - 18}" class="sk-line" fill="none" stroke-dasharray="4 3"/>`;
+  const pts = n === 1 ? [[cx, cy]] : Array.from({ length: n }, (_, i) => {
+    const a = Math.PI + i * 2 * Math.PI / n; // Start KS (links), im Uhrzeigersinn (Draufsicht)
+    return [cx + Math.cos(a) * (r - 14), cy + Math.sin(a) * (r - 14)];
+  });
+  pts.forEach(([x, y], i) => {
+    s += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="9" class="sk-pt"/><text x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}" class="sk-t pt mid">${n === 1 ? 'OT' : i + 1}</text>`;
+  });
+  s += `<text x="${cx}" y="146" class="sk-t s mid">Draufsicht Kolben</text>`;
+  return s + '</svg>';
+}
+
 Object.assign(window, { selectCyl, endoRestOk, serialAddRow, serialRemoveRow, serialAddGroup, serialRemoveGroup });

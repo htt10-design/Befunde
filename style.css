@@ -917,3 +917,32 @@ details.collapse[open] > summary::after { content: '▴'; }
   #print-area .pr-sigrow small { font-size: 7.5pt; display: block; }
   .pr-pageno { text-align: center; font-size: 9pt; margin-top: 8pt; }
 }
+
+/* ---------- Skizzen ---------- */
+.cfg-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 10px; }
+.cfg-row .field { margin: 0; min-width: 170px; }
+.cfg-row .seg button { min-width: 44px; }
+.sketch { flex: 1; min-width: 220px; max-width: 360px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 6px; }
+.sk-svg { width: 100%; height: auto; display: block; stroke: none; fill: none; }
+.sk-body { fill: var(--accent-soft); stroke: var(--accent-strong); stroke-width: 1.5; }
+.sk-line { stroke: var(--accent-strong); stroke-width: 1.2; }
+.sk-plane { stroke: var(--t-bad); stroke-width: 1.6; stroke-dasharray: 5 3; }
+.sk-axis { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 10 3 2 3; }
+.sk-arrow { stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.sk-arrow.a { stroke: #e0a512; } .sk-arrow.b { stroke: var(--t-ok); }
+.sk-pt { fill: var(--accent); stroke: #fff; stroke-width: 1.5; }
+.sk-t { fill: var(--text); stroke: none; font-size: 11px; font-weight: 700; font-family: inherit; }
+.sk-t.s { font-size: 9.5px; font-weight: 600; fill: var(--muted); }
+.sk-t.b { font-size: 13px; font-weight: 800; }
+.sk-t.pt { font-size: 9px; font-weight: 800; fill: #fff; }
+.sk-t.mid { text-anchor: middle; } .sk-t.end { text-anchor: end; }
+@media print {
+  .pr-sketch { display: flex; align-items: center; gap: 10pt; border: .5pt solid #000; border-bottom: 0; padding: 2pt 5pt; font-size: 8pt; }
+  .pr-sketch .sk-svg { width: auto; height: 84pt; }
+  .pr-sketch .sk-body { fill: #f3f3f3; stroke: #000; }
+  .pr-sketch .sk-line, .pr-sketch .sk-axis { stroke: #000; }
+  .pr-sketch .sk-plane { stroke: #000; }
+  .pr-sketch .sk-arrow.a, .pr-sketch .sk-arrow.b { stroke: #000; }
+  .pr-sketch .sk-pt { fill: #000; }
+  .pr-sketch .sk-t { fill: #000; } .pr-sketch .sk-t.pt { fill: #fff; }
+}

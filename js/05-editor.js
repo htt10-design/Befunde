@@ -175,6 +175,7 @@ function specInput(label, bind, value, opts = {}) {
 
 function measureCardHtml(order, sheet, cfg, engine) {
   const d = sheet.data[cfg.key] || (sheet.data[cfg.key] = {});
+  cfg = effCfg(cfg, d);
   const spec = d.spec || {};
   const p = 'data.' + cfg.key;
   const pos = tablePositions(order, sheet, cfg);
@@ -227,6 +228,13 @@ function measureCardHtml(order, sheet, cfg, engine) {
         <span>Anzahl ${cfg.posKind === 'main' ? 'Grundlager' : cfg.posKind === 'rod' ? 'Hublagerzapfen' : 'Lager'}</span>
         <input class="count-in" type="number" min="1" max="30" data-bind="${p}.count" data-rerender="1" value="${escapeHtml(d.count || pos.length)}">
         <span class="muted small-text">Lager 1 = KS</span>
+      </div>` : ''}
+      ${cfg.planeOptions || cfg.pointOptions ? `
+      <div class="cfg-row">
+        <div class="field"><span>${cfg.planeOptions ? 'Anzahl Messebenen' : 'Anzahl Messpunkte'}</span>
+          <div class="seg">${(cfg.planeOptions || cfg.pointOptions).map(n => `<button type="button" class="${(cfg.nPlanes || cfg.nPoints) === n ? 'on' : ''}" data-set="${p}.${cfg.planeOptions ? 'planes' : 'points'}" data-val="${n}" data-keep="1">${n}</button>`).join('')}</div>
+        </div>
+        ${cfg.sketch ? `<div class="sketch">${sketchSvg(cfg)}</div>` : ''}
       </div>` : ''}
       <details class="spec-box" ${hasSpec ? '' : 'open'}>
         <summary>Sollwerte / Toleranzen <span class="muted small-text">${hasSpec ? specSummary(cfg, spec) : 'aus Handbuch eintragen – dann wird automatisch bewertet'}</span></summary>
@@ -328,8 +336,9 @@ function refreshMeasure() {
   const cell = (key, pos, what) => body.querySelector(`[data-d="${CSS.escape(key + '|' + pos + '|' + what)}"]`);
   const setCell = (el, n, st, dec) => { if (!el) return; el.textContent = n == null ? '' : formatNum(n, dec); setSt(el, st); };
 
-  t.measure.forEach(cfg => {
-    const d = sheet.data[cfg.key] || {};
+  t.measure.forEach(cfg0 => {
+    const d = sheet.data[cfg0.key] || {};
+    const cfg = effCfg(cfg0, d);
     const p = 'data.' + cfg.key;
     const pos = tablePositions(order, sheet, cfg);
     const res = computeTable(cfg, d, pos);

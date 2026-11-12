@@ -143,6 +143,25 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     const groups = await page.evaluate(() => getActiveSheet().data.groups.map(g => g.label + ':' + g.rows.length));
     assert(groups.some(g => g.startsWith('Pleuel:16')) && groups.some(g => g.startsWith('Zylinderköpfe:16')), 'Seriennummern-Gruppen: ' + groups.join(', '), errors);
 
+    // Laufbuchse: Anzahl Messebenen 2/3/4 umschalten
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'liner').id));
+    await page.click('[data-set="data.lb.planes"][data-val="4"]');
+    const pl4 = await page.evaluate(() => document.querySelectorAll('[data-mkey="lb"] tbody tr:first-child .m-in').length);
+    assert(pl4 === 8, '4 Ebenen × A/B = 8 Felder: ' + pl4, errors);
+    await page.click('[data-set="data.lb.planes"][data-val="2"]');
+    const pl2 = await page.evaluate(() => document.querySelectorAll('[data-mkey="lb"] tbody tr:first-child .m-in').length);
+    assert(pl2 === 4, '2 Ebenen × A/B = 4 Felder: ' + pl2, errors);
+    assert(await page.locator('[data-mkey="lb"] .sketch svg').count() === 1, 'Skizze Laufbuchse sichtbar', errors);
+    await page.click('[data-set="data.lb.planes"][data-val="3"]');
+    // Kolbenüberstand: Anzahl Messpunkte
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'piston_proj').id));
+    const pp1 = await page.evaluate(() => document.querySelectorAll('[data-mkey="pp"] tbody tr:first-child .m-in:not(.txt)').length);
+    assert(pp1 === 1, 'Kolbenüberstand Standard 1 Messpunkt: ' + pp1, errors);
+    await page.click('[data-set="data.pp.points"][data-val="3"]');
+    const pp3 = await page.evaluate(() => document.querySelectorAll('[data-mkey="pp"] tbody tr:first-child .m-in:not(.txt)').length);
+    assert(pp3 === 3, 'Kolbenüberstand 3 Messpunkte: ' + pp3, errors);
+    await shot('12-piston-3pt');
+
     // Kurbelwelle Zapfen: Lageranzahl V16 = 9 Grundlager, 8 Hublager
     await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'kw_journal').id));
     const kw = await page.evaluate(() => [document.querySelectorAll('[data-mkey="kgl"] tbody tr').length, document.querySelectorAll('[data-mkey="khl"] tbody tr').length]);
