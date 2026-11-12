@@ -1,0 +1,182 @@
+// Smoke-Test für Befunde: startet einen lokalen Server, öffnet die App in
+// Chromium (Handy + Desktop), legt einen Auftrag mit ALLEN Blattarten an,
+// gibt Messwerte ein, prüft die Auswertung, klickt alles durch, erzeugt die
+// Druckansicht als PDF und meldet JS-Fehler. Screenshots → .smoke/
+//
+// Aufruf:  node tools/smoke-test.js [ausgabe-ordner]
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
+
+let chromium;
+try { ({ chromium } = require('playwright')); }
+catch { ({ chromium } = require(path.join(require('child_process').execSync('npm root -g').toString().trim(), 'playwright'))); }
+
+const ROOT = path.resolve(__dirname, '..');
+const OUT = path.resolve(process.argv[2] || path.join(ROOT, '.smoke'));
+const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml' };
+
+const server = http.createServer((req, res) => {
+  const file = path.join(ROOT, decodeURIComponent(req.url.split('?')[0]).replace(/\/$/, '/index.html'));
+  if (!file.startsWith(ROOT) || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }
+  res.writeHead(200, { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream' });
+  fs.createReadStream(file).pipe(res);
+});
+
+function assert(cond, msg, errors) { if (!cond) errors.push('ASSERT: ' + msg); }
+
+// Kleines Testbild (PNG, 2×2 px) für den Foto-Upload
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGP4z8DwnwEIGBgYGBgYGAA6DAP9Hn6r8wAAAABJRU5ErkJggg==', 'base64');
+
+(async () => {
+  await new Promise(r => server.listen(0, r));
+  const url = `http://localhost:${server.address().port}/index.html`;
+  fs.mkdirSync(OUT, { recursive: true });
+  const browser = await chromium.launch();
+  const errors = [];
+
+  for (const [label, viewport] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 900 }]]) {
+    const ctx = await browser.newContext({ viewport });
+    const page = await ctx.newPage();
+    page.on('pageerror', e => errors.push(`[${label}] ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`[${label}] console: ${m.text()}`); });
+    page.on('dialog', d => d.accept());
+    const shot = name => page.screenshot({ path: path.join(OUT, `${label}-${name}.png`), fullPage: true });
+
+    await page.goto(url);
+    await page.waitForFunction(() => typeof appData !== 'undefined' && appData);
+    await shot('01-start');
+
+    // Neuer Auftrag
+    await page.click('.fab');
+    await page.fill('#no-orderno', '249');
+    await page.fill('#no-customer', 'Testkunde');
+    await page.fill('#no-vessel', 'MS Test');
+    await page.click('.modal-actions .btn-primary');
+    await page.waitForSelector('#view-order.active');
+    const orderNo = await page.evaluate(() => getActiveOrder().orderNo);
+    assert(/^SR\d{2}\/000249$/.test(orderNo), 'Auftragsnummer formatiert: ' + orderNo, errors);
+    await page.fill('[data-bind="engines.0.model"]', '16V 4000 M63');
+    await page.locator('[data-bind="engines.0.model"]').dispatchEvent('change');
+    await page.fill('[data-bind="engines.0.number"]', '5362001234');
+    await page.fill('[data-bind="engines.0.hours"]', '15120');
+    const cyl = await page.evaluate(() => getActiveOrder().engines[0].cylinders);
+    assert(cyl === 16, 'Zylinderzahl aus Motortyp erkannt (16): ' + cyl, errors);
+    await shot('02-order');
+
+    // Alle Blattarten anlegen
+    const types = await page.evaluate(() => SHEET_TYPES.map(t => t.id));
+    for (const t of types) {
+      await page.click('.add-sheet-btn');
+      await page.click(`.type-tile[onclick="chooseSheetType('${t}')"]`);
+      if (await page.locator('.type-choice').count()) await page.click('.type-choice .type-btn >> nth=0');
+      await page.waitForSelector('#view-sheet.active');
+      await shot('sheet-' + t);
+      await page.click('#btn-back');
+      await page.waitForSelector('#view-order.active');
+    }
+    const n = await page.evaluate(() => getActiveOrder().sheets.length);
+    assert(n === types.length, `alle ${types.length} Blätter angelegt (${n})`, errors);
+
+    // Laufbuchse: Sollwerte + Messwerte (inkl. µm-Schnelleingabe)
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'liner').id));
+    await page.fill('[data-bind="data.lb.spec.nom"]', '170,000');
+    await page.fill('[data-bind="data.lb.spec.min"]', '170,000');
+    await page.fill('[data-bind="data.lb.spec.max"]', '40');
+    await page.locator('[data-bind="data.lb.spec.max"]').dispatchEvent('change');
+    await page.fill('[data-bind="data.lb.spec.ovalMax"]', '0,03');
+    const max = await page.inputValue('[data-bind="data.lb.spec.max"]');
+    assert(max === '170,040', 'Schnelleingabe Toleranz max → 170,040: ' + max, errors);
+    const vals = { 'A1.I_L': '12', 'A1.I_Q': '18', 'A2.I_L': '20', 'A2.I_Q': '75', 'A3.I_L': '170.010', 'A3.I_Q': '170,015' };
+    for (const [k, v] of Object.entries(vals)) {
+      const sel = `[data-bind="data.lb.rows.${k}"]`;
+      await page.fill(sel, v);
+      await page.locator(sel).dispatchEvent('change');
+    }
+    const a1 = await page.inputValue('[data-bind="data.lb.rows.A1.I_L"]');
+    assert(a1 === '170,012', 'Messwert 12 → 170,012: ' + a1, errors);
+    const a3 = await page.inputValue('[data-bind="data.lb.rows.A3.I_L"]');
+    assert(a3 === '170,010', 'Punkt → Komma: ' + a3, errors);
+    const a2bad = await page.getAttribute('[data-bind="data.lb.rows.A2.I_Q"]', 'class');
+    assert(/st-bad/.test(a2bad), 'A2 quer 170,075 außer Toleranz rot', errors);
+    const oval = await page.textContent('[data-d="lb|A2|oval"]');
+    assert(oval.trim() === '0,055', 'Ovalität A2 = 0,055: ' + oval, errors);
+    // Sichtbefund
+    await page.click('[data-set="data.lbi.rows.A2.rating"][data-val="bad"]');
+    await page.click('.insp-actions .btn');
+    const rated = await page.evaluate(() => Object.values(getActiveSheet().data.lbi.rows).filter(r => r.rating).length);
+    assert(rated === 16, 'Alle übrigen i.O. → 16 bewertet: ' + rated, errors);
+    // Befund mit Foto
+    await page.click('.findings-card .btn-soft');
+    await page.fill('[data-bind="findings.0.part"]', 'Laufbuchse A2');
+    await page.fill('[data-bind="findings.0.text"]', 'Polierstellen');
+    await page.evaluate(() => addPhotos('findings.0.photos')).catch(() => {});
+    await page.setInputFiles('#photo-input', { name: 'a.png', mimeType: 'image/png', buffer: PNG });
+    await page.waitForFunction(() => (getActiveSheet().findings[0].photos || []).length > 0, null, { timeout: 5000 }).catch(() => errors.push('Foto nicht gespeichert'));
+    const auto = await page.evaluate(() => sheetAutoRating(getActiveOrder(), getActiveSheet()));
+    assert(auto === 'bad', 'Auto-Bewertung n.i.O.: ' + auto, errors);
+    await page.click('[data-set="rating"][data-val="bad"]');
+    await shot('10-liner-filled');
+
+    // Endoskopie: Zylinder antippen
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'endoscopy').id));
+    await page.click('[data-cyl="B3"]');
+    await page.click('[data-set="data.cyl.B3.rating"][data-val="obs"]');
+    await page.click('[data-tag="data.cyl.B3.tags"][data-val="Polierstellen"]');
+    await page.click('.endo-card .btn-soft');
+    const endo = await page.evaluate(() => getActiveSheet().data.cyl);
+    assert(endo.B3.rating === 'obs' && endo.B3.tags.includes('Polierstellen') && endo.A1.rating === 'ok', 'Endoskopie B3 + Rest i.O.', errors);
+    await shot('11-endo');
+
+    // Düsen
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'nozzles').id));
+    await page.fill('[data-bind="data.spec.min"]', '300');
+    await page.fill('[data-bind="data.spec.max"]', '320');
+    await page.fill('[data-bind="data.rows.A1.p1"]', '280');
+    await page.locator('[data-bind="data.rows.A1.p1"]').dispatchEvent('change');
+    await page.click('[data-set="data.rows.A1.spray"][data-val="ok"]');
+    const nz = await page.evaluate(() => nozzleRows(getActiveOrder(), getActiveSheet())[0].st);
+    assert(nz === 'bad', 'Düse A1 280 bar < 300 → n.i.O.: ' + nz, errors);
+
+    // Seriennummern
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'serials').id));
+    const groups = await page.evaluate(() => getActiveSheet().data.groups.map(g => g.label + ':' + g.rows.length));
+    assert(groups.some(g => g.startsWith('Pleuel:16')) && groups.some(g => g.startsWith('Zylinderköpfe:16')), 'Seriennummern-Gruppen: ' + groups.join(', '), errors);
+
+    // Kurbelwelle Zapfen: Lageranzahl V16 = 9 Grundlager, 8 Hublager
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'kw_journal').id));
+    const kw = await page.evaluate(() => [document.querySelectorAll('[data-mkey="kgl"] tbody tr').length, document.querySelectorAll('[data-mkey="khl"] tbody tr').length]);
+    assert(kw[0] === 9 && kw[1] === 8, 'KW 9 Grundlager / 8 Hublager: ' + kw, errors);
+
+    // Druck: Deckblatt + alle Blätter → PDF
+    await page.click('#btn-back');
+    await page.click('#btn-print');
+    await page.evaluate(() => { window.print = () => { window.__printed = true; }; });
+    await page.click('.modal-actions .btn-primary');
+    await page.waitForFunction(() => window.__printed, null, { timeout: 5000 }).catch(() => errors.push('Druck nicht ausgelöst'));
+    const pages = await page.evaluate(() => document.querySelectorAll('#print-area .pr-page').length);
+    assert(pages === types.length + 1, `Druck: Deckblatt + ${types.length} Blätter (${pages})`, errors);
+    if (label === 'desktop') {
+      await page.emulateMedia({ media: 'print' });
+      await page.pdf({ path: path.join(OUT, 'druck-alle-blaetter.pdf'), format: 'A4', printBackground: true });
+      await page.emulateMedia({ media: 'screen' });
+    }
+
+    // Einstellungen, Beispielauftrag, Dunkelmodus
+    await page.click('#btn-back');
+    await page.click('.nav-item[data-view="settings"]');
+    await page.fill('[data-bind="name"]', 'Max Prüfer');
+    await shot('20-settings');
+    await page.click('#btn-theme');
+    await page.evaluate(() => createDemoOrder());
+    await page.waitForSelector('#view-order.active');
+    await shot('21-demo-dark');
+    await page.click('#btn-theme');
+    await ctx.close();
+  }
+
+  await browser.close();
+  server.close();
+  if (errors.length) { console.log('FEHLER:\n' + errors.join('\n')); process.exit(1); }
+  console.log('Smoke-Test OK – Screenshots/PDF in ' + OUT);
+})().catch(e => { console.error(e); server.close(); process.exit(1); });
