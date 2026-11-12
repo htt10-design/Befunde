@@ -175,6 +175,7 @@ function specInput(label, bind, value, opts = {}) {
 
 function measureCardHtml(order, sheet, cfg, engine) {
   const d = sheet.data[cfg.key] || (sheet.data[cfg.key] = {});
+  cfg = effCfg(cfg, d);
   const spec = d.spec || {};
   const p = 'data.' + cfg.key;
   const pos = tablePositions(order, sheet, cfg);
@@ -195,7 +196,7 @@ function measureCardHtml(order, sheet, cfg, engine) {
     specHtml = `
       ${specInput('Soll min', p + '.spec.min', spec.min, { placeholder: 'z.B. 0,05' })}
       ${specInput('Soll max', p + '.spec.max', spec.max, { placeholder: 'z.B. 0,12' })}
-      ${specInput('Streuung max', p + '.spec.spreadMax', spec.spreadMax, { placeholder: 'optional' })}
+      ${cfg.points.length > 1 ? specInput('Streuung max', p + '.spec.spreadMax', spec.spreadMax, { placeholder: 'optional' }) : ''}
       ${cfg.neighbor ? specInput('Δ Nachbar max', p + '.spec.neighborMax', spec.neighborMax, { placeholder: 'optional' }) : ''}`;
   } else {
     specHtml = cfg.pairs.map(pr => {
@@ -227,6 +228,13 @@ function measureCardHtml(order, sheet, cfg, engine) {
         <span>Anzahl ${cfg.posKind === 'main' ? 'Grundlager' : cfg.posKind === 'rod' ? 'Hublagerzapfen' : 'Lager'}</span>
         <input class="count-in" type="number" min="1" max="30" data-bind="${p}.count" data-rerender="1" value="${escapeHtml(d.count || pos.length)}">
         <span class="muted small-text">Lager 1 = KS</span>
+      </div>` : ''}
+      ${cfg.planeOptions || cfg.pointOptions ? `
+      <div class="cfg-row">
+        <div class="field"><span>${cfg.planeOptions ? 'Anzahl Messebenen' : 'Anzahl Messpunkte'}</span>
+          <div class="seg">${(cfg.planeOptions || cfg.pointOptions).map(n => `<button type="button" class="${(cfg.nPlanes || cfg.nPoints) === n ? 'on' : ''}" data-set="${p}.${cfg.planeOptions ? 'planes' : 'points'}" data-val="${n}" data-keep="1">${n}</button>`).join('')}</div>
+        </div>
+        ${cfg.sketch ? `<div class="sketch">${sketchSvg(cfg)}</div>` : ''}
       </div>` : ''}
       <details class="spec-box" ${hasSpec ? '' : 'open'}>
         <summary>Sollwerte / Toleranzen <span class="muted small-text">${hasSpec ? specSummary(cfg, spec) : 'aus Handbuch eintragen – dann wird automatisch bewertet'}</span></summary>
@@ -288,17 +296,18 @@ function measureTableHtml(cfg, d, pos, p) {
       <tr>${head2}</tr></thead><tbody>${body}</tbody></table>`;
   }
   if (cfg.kind === 'points') {
+    const one = cfg.points.length === 1;
     const body = pos.map(ps => {
       const r = rows[ps] || {};
       const { cls, th } = posTh(ps);
       return `<tr class="${cls}">${th}${cfg.points.map((pt, i) => `<td>${mIn(`${p}.rows.${ps}.p${i}`, r['p' + i], null, cfg.dec, ps + ' ' + pt)}</td>`).join('')}
-        <td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|mean"></td>
-        <td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|spread"></td>
+        ${one ? '' : `<td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|mean"></td><td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|spread"></td>`}
         ${cfg.neighbor ? `<td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|neighbor"></td>` : ''}
         ${cfg.extraCol ? `<td><input class="m-in txt" data-bind="${p}.rows.${ps}.${cfg.extraCol.k}" value="${escapeHtml(r[cfg.extraCol.k] || '')}" autocomplete="off" aria-label="${escapeHtml(cfg.extraCol.label)}"></td>` : ''}
+        ${cfg.note ? `<td><input class="m-in txt note" data-bind="${p}.rows.${ps}.note" value="${escapeHtml(r.note || '')}" autocomplete="off" placeholder="Bemerkung" aria-label="Bemerkung ${escapeHtml(ps)}"></td>` : ''}
       </tr>`;
     }).join('');
-    return `<table class="mtable"><thead><tr><th class="pos">Zyl.</th>${cfg.points.map(pt => `<th>${escapeHtml(pt)}</th>`).join('')}<th>Mittel</th><th>Streuung</th>${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<table class="mtable"><thead><tr><th class="pos">Zyl.</th>${cfg.points.map(pt => `<th>${escapeHtml(pt)}</th>`).join('')}${one ? '' : '<th>Mittel</th><th>Streuung</th>'}${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}${cfg.note ? '<th>Bemerkung</th>' : ''}</tr></thead><tbody>${body}</tbody></table>`;
   }
   // clearance
   const head1 = cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * 2 + 1}" class="grp">${escapeHtml(pr.label)}</th>`).join('');
@@ -327,8 +336,9 @@ function refreshMeasure() {
   const cell = (key, pos, what) => body.querySelector(`[data-d="${CSS.escape(key + '|' + pos + '|' + what)}"]`);
   const setCell = (el, n, st, dec) => { if (!el) return; el.textContent = n == null ? '' : formatNum(n, dec); setSt(el, st); };
 
-  t.measure.forEach(cfg => {
-    const d = sheet.data[cfg.key] || {};
+  t.measure.forEach(cfg0 => {
+    const d = sheet.data[cfg0.key] || {};
+    const cfg = effCfg(cfg0, d);
     const p = 'data.' + cfg.key;
     const pos = tablePositions(order, sheet, cfg);
     const res = computeTable(cfg, d, pos);

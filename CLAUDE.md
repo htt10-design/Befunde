@@ -16,13 +16,13 @@ Endoskopie, Düsen, Seriennummern, allgemeine Durchsicht). Design, Aufbau und Ko
 | 06-special | Endoskopie (SVG Draufsicht, KS links, A oben), Düsen, Seriennummern, Allgemeines Befundblatt |
 | 07-photos | Fotos verkleinern → Store `files`, im Blatt nur IDs in `photos`-Arrays; `collectPhotoIds` |
 | 08-signature | Unterschrift (aus Zettel-Job übernommen) |
-| 09-print | Druck A4: `printHeadHtml` = einheitlicher Kopf für ALLE Blätter, Deckblatt mit Handlungsbedarf (`sheetIssues`) |
-| 10-settings | Prüfer, Firma/Logo für den Kopf, eigene Unterschrift, gemerkte Sollwerte, Sicherung/Import (mit Fotos), Beispielauftrag |
+| 09-print | Druck A4 im Stil der SDT-Papierblätter: `printHeadHtml` (Logo mittig, Titel unterstrichen, zweisprachige Kopftabelle Auftraggeber/Auftrags-Nr./Neubau-Nr./Klassifikation · Motorfabrikat/Motortyp/Motornr./Leistung), `printFootBlock` (Bemerkung/Empfehlung, Messwerkzeug, Seitenzahl, Datum, Unterschrift, Sonstiges), Titel über `printDocTitle` („Messblatt Überstand Laufbuchse“), Deckblatt mit Handlungsbedarf (`sheetIssues`) |
+| 10-settings | Prüfer, Logo für den Kopf (`settings.logo`: null = SDT-Standard `img/sdt-logo.svg`, '' = ohne, sonst Data-URL), eigene Unterschrift, gemerkte Sollwerte, Sicherung/Import (mit Fotos), Beispielauftrag |
 
 ## Datenmodell
 
-- `order`: { id, orderNo, customer, vessel, location, contact, reason, date, status 'offen'|'fertig', engines[], sheets[] }
-- `engine`: { name, make, model, number, hours, layout 'V'|'R', cylinders, count 'KS'|'KGS' } – Motortyp „16V…“ setzt V/16.
+- `order`: { id, orderNo, customer, vessel, newbuild, classification, location, contact, reason, date, status 'offen'|'fertig', engines[], sheets[] }
+- `engine`: { name, make, model, number, hours, power, rpm, layout 'V'|'R', cylinders, count 'KS'|'KGS' } – Motortyp „16V…“ setzt V/16.
 - `sheet`: { id, type, mode 'beides'|'mess'|'befund'|null, engine (Index), date, subtitle, data{}, findings[], rating, summary, advice, signWorker, signCustomer }
 - Messwerte: `sheet.data[cfg.key] = { spec, rows: { [Position]: { 'I_L': '170,012', … } }, count }` – Werte als Text mit Komma.
 - Gemerkte Sollwerte: `appData.specs["mtu 16v 4000 m63"][typeId] = { [cfg.key]: spec }`.
@@ -30,8 +30,8 @@ Endoskopie, Düsen, Seriennummern, allgemeine Durchsicht). Design, Aufbau und Ko
 
 ## Neues Blatt ergänzen
 
-Eintrag in `SHEET_TYPES` (03-types): `measure` (grid/points/clearance), `inspect` (Positionen + Befund-Chips),
-`extra` (Zusatzangaben im Kopf) – Editor, Auswertung und Druck kommen automatisch. Nur für ganz eigene Blätter
+Eintrag in `SHEET_TYPES` (03-types): `measure` (grid/points/clearance; points mit nur 1 Punkt = Einzelwert ohne Mittel/Streuung, `note: true` = Bemerkung je Zeile), `inspect` (Positionen + Befund-Chips),
+`extra` (Zusatzangaben im Kopf), `printLabel` (Name im Drucktitel) – Editor, Auswertung und Druck kommen automatisch. Nur für ganz eigene Blätter
 `special` + Funktionen in 06-special und `specialPrintHtml` (09-print).
 
 ## Konventionen

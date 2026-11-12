@@ -27,16 +27,16 @@ function renderSettings() {
     <div class="card">
       <h3 class="card-title">Kopf der Blätter</h3>
       <div data-root="settings">
-        ${field('Firma', 'company', s.company, { placeholder: 'z.B. Firmenname GmbH' })}
-        ${field('Zusatzzeile', 'companyLine', s.companyLine, { placeholder: 'z.B. Service Motoren · Anschrift · Telefon' })}
       </div>
       <div class="logo-row">
-        ${s.logo ? `<img class="logo-prev" src="${s.logo}" alt="Logo">` : '<span class="muted small-text">Kein Logo</span>'}
+        ${s.logo === '' ? '<span class="muted small-text">Ohne Logo</span>' : `<img class="logo-prev" src="${s.logo || DEFAULT_LOGO}" alt="Logo">`}
         <div class="btn-row">
-          <button class="btn btn-soft" onclick="pickLogo()">${s.logo ? 'Logo ändern' : 'Logo hochladen'}</button>
-          ${s.logo ? '<button class="btn btn-ghost" onclick="removeLogo()">Entfernen</button>' : ''}
+          <button class="btn btn-soft" onclick="pickLogo()">Eigenes Logo hochladen</button>
+          ${s.logo ? '<button class="btn btn-ghost" onclick="resetLogo()">SDT-Logo</button>' : ''}
+          ${s.logo !== '' ? '<button class="btn btn-ghost" onclick="removeLogo()">Ohne Logo</button>' : '<button class="btn btn-ghost" onclick="resetLogo()">SDT-Logo</button>'}
         </div>
       </div>
+      <p class="muted small-text">Das Logo steht mittig über dem Titel jedes Blatts.</p>
       <input type="file" id="logo-input" accept="image/*" hidden onchange="onLogoInput(event)">
     </div>
 
@@ -91,7 +91,8 @@ async function onLogoInput(ev) {
   saveData(true);
   renderSettings();
 }
-function removeLogo() { appData.settings.logo = null; saveData(true); renderSettings(); }
+function removeLogo() { appData.settings.logo = ''; saveData(true); renderSettings(); }
+function resetLogo() { appData.settings.logo = null; saveData(true); renderSettings(); }
 async function deleteSpec(k) {
   if (!await confirmDialog('Gemerkte Sollwerte für ' + k.toUpperCase() + ' löschen?', 'Löschen', true)) return;
   delete appData.specs[k];
@@ -177,7 +178,8 @@ function createDemoOrder() {
   const order = newOrder({
     orderNo: 'SR' + todayISO().slice(2, 4) + '/000815', customer: 'Muster Reederei', vessel: 'MS Beispiel', location: 'Werft Hafen',
     reason: 'Durchsicht nach 15.000 Bh, erhöhter Ölverbrauch',
-    engines: [Object.assign(newEngine(), { make: 'MTU', model: '16V 4000 M63', number: '5362001234', hours: '15120', layout: 'V', cylinders: 16, count: 'KS' })]
+    newbuild: 'S 1234', classification: 'DNV',
+    engines: [Object.assign(newEngine(), { make: 'MTU', model: '16V 4000 M63', number: '5362001234', hours: '15120', power: '2560', rpm: '1800', layout: 'V', cylinders: 16, count: 'KS' })]
   });
   const lb = createSheet(order, 'liner', 'beides', 0);
   lb.data.tool = 'Innenmessgerät (Messuhr)';
@@ -207,4 +209,4 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('import-input').addEventListener('change', onImportInput);
 });
 
-Object.assign(window, { setQuickInput, setTheme, removeOwnSignature, pickLogo, onLogoInput, removeLogo, deleteSpec, exportBackup, exportOrder, createDemoOrder });
+Object.assign(window, { setQuickInput, setTheme, removeOwnSignature, pickLogo, onLogoInput, removeLogo, resetLogo, deleteSpec, exportBackup, exportOrder, createDemoOrder });
