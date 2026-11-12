@@ -66,12 +66,12 @@ const SHEET_TYPES = [
     special: 'endoscopy'
   },
   {
-    id: 'piston_proj', group: 'zyl', icon: 'piston', label: 'Kolbenüberstand',
-    desc: 'Überstand im OT je Zylinder, 2 Messpunkte',
+    id: 'piston_proj', group: 'zyl', icon: 'piston', label: 'Kolbenüberstand', printLabel: 'Überstand Kolben',
+    desc: 'Überstand im OT je Zylinder',
     measure: [{
-      kind: 'points', key: 'pp', title: 'Kolbenüberstand im OT', posKind: 'cyl', dec: 2, unit: 'mm',
-      points: ['Pkt. 1', 'Pkt. 2'], pointHint: 'z.B. Pkt. 1 = Auslass, Pkt. 2 = Einlass',
-      neighbor: false, extraCol: { k: 'gasket', label: 'Dichtung' }
+      kind: 'points', key: 'pp', title: 'Kolbenüberstand', posKind: 'cyl', dec: 2, unit: 'mm',
+      points: ['Istmaß OT'], pointHint: 'Kolben im OT – Überstand über Dichtfläche Kurbelgehäuse (negativ = Rückstand)',
+      neighbor: false, note: true
     }]
   },
   {
@@ -100,12 +100,12 @@ const SHEET_TYPES = [
     inspect: [{ key: 'lfi', title: 'Sichtbefund Sitzflächen', posKind: 'cyl', items: INSPECT_ITEMS.liner_fit }]
   },
   {
-    id: 'liner_proj', group: 'lb', icon: 'proj', label: 'Laufbuchse Überstand',
+    id: 'liner_proj', group: 'lb', icon: 'proj', label: 'Laufbuchse Überstand', printLabel: 'Überstand Laufbuchse',
     desc: 'Bundüberstand über Gehäuse, 4 Messpunkte, Nachbarvergleich',
     measure: [{
-      kind: 'points', key: 'lp', title: 'Überstand Laufbuchsenbund', posKind: 'cyl', dec: 3, unit: 'mm',
+      kind: 'points', key: 'lp', title: 'Buchsenüberstand', posKind: 'cyl', dec: 3, unit: 'mm',
       points: ['0°', '90°', '180°', '270°'], pointHint: '0° = Richtung KS, im Uhrzeigersinn',
-      neighbor: true
+      neighbor: true, note: true
     }],
     extra: [{ k: 'torque', label: 'Anzugsmoment / Spannvorrichtung' }]
   },

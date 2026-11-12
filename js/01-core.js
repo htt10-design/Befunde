@@ -7,6 +7,7 @@ const BF_DB_NAME = 'befunde';
 const BF_DB_STORE = 'store';
 const BF_DB_KEY = 'appData';
 const BF_DB_FILES = 'files'; // Fotos (Blobs), getrennt von appData
+const DEFAULT_LOGO = 'img/sdt-logo.svg'; // Standard-Logo im Kopf (settings.logo: null = Standard, '' = kein Logo)
 
 let appData = null;
 let currentView = 'orders';
@@ -21,7 +22,7 @@ function createDefaultData() {
       name: '',          // Prüfer / Monteur
       company: '',       // Firmenname im Kopf
       companyLine: '',   // z.B. Anschrift / Abteilung
-      logo: null,        // Data-URL
+      logo: null,        // Data-URL · null = SDT-Standardlogo · '' = ohne Logo
       theme: 'auto',
       ownSignature: null,
       quickInput: true   // Schnelleingabe µm bei Durchmessern
@@ -56,7 +57,7 @@ function normalizeOrder(o) {
 }
 
 function newEngine() {
-  return { name: '', make: 'MTU', model: '', number: '', hours: '', layout: 'V', cylinders: 16, count: 'KS' };
+  return { name: '', make: 'MTU', model: '', number: '', hours: '', power: '', rpm: '', layout: 'V', cylinders: 16, count: 'KS' };
 }
 
 // ---------- IndexedDB ----------

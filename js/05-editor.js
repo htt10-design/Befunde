@@ -195,7 +195,7 @@ function measureCardHtml(order, sheet, cfg, engine) {
     specHtml = `
       ${specInput('Soll min', p + '.spec.min', spec.min, { placeholder: 'z.B. 0,05' })}
       ${specInput('Soll max', p + '.spec.max', spec.max, { placeholder: 'z.B. 0,12' })}
-      ${specInput('Streuung max', p + '.spec.spreadMax', spec.spreadMax, { placeholder: 'optional' })}
+      ${cfg.points.length > 1 ? specInput('Streuung max', p + '.spec.spreadMax', spec.spreadMax, { placeholder: 'optional' }) : ''}
       ${cfg.neighbor ? specInput('Δ Nachbar max', p + '.spec.neighborMax', spec.neighborMax, { placeholder: 'optional' }) : ''}`;
   } else {
     specHtml = cfg.pairs.map(pr => {
@@ -288,17 +288,18 @@ function measureTableHtml(cfg, d, pos, p) {
       <tr>${head2}</tr></thead><tbody>${body}</tbody></table>`;
   }
   if (cfg.kind === 'points') {
+    const one = cfg.points.length === 1;
     const body = pos.map(ps => {
       const r = rows[ps] || {};
       const { cls, th } = posTh(ps);
       return `<tr class="${cls}">${th}${cfg.points.map((pt, i) => `<td>${mIn(`${p}.rows.${ps}.p${i}`, r['p' + i], null, cfg.dec, ps + ' ' + pt)}</td>`).join('')}
-        <td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|mean"></td>
-        <td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|spread"></td>
+        ${one ? '' : `<td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|mean"></td><td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|spread"></td>`}
         ${cfg.neighbor ? `<td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|neighbor"></td>` : ''}
         ${cfg.extraCol ? `<td><input class="m-in txt" data-bind="${p}.rows.${ps}.${cfg.extraCol.k}" value="${escapeHtml(r[cfg.extraCol.k] || '')}" autocomplete="off" aria-label="${escapeHtml(cfg.extraCol.label)}"></td>` : ''}
+        ${cfg.note ? `<td><input class="m-in txt note" data-bind="${p}.rows.${ps}.note" value="${escapeHtml(r.note || '')}" autocomplete="off" placeholder="Bemerkung" aria-label="Bemerkung ${escapeHtml(ps)}"></td>` : ''}
       </tr>`;
     }).join('');
-    return `<table class="mtable"><thead><tr><th class="pos">Zyl.</th>${cfg.points.map(pt => `<th>${escapeHtml(pt)}</th>`).join('')}<th>Mittel</th><th>Streuung</th>${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}</tr></thead><tbody>${body}</tbody></table>`;
+    return `<table class="mtable"><thead><tr><th class="pos">Zyl.</th>${cfg.points.map(pt => `<th>${escapeHtml(pt)}</th>`).join('')}${one ? '' : '<th>Mittel</th><th>Streuung</th>'}${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}${cfg.note ? '<th>Bemerkung</th>' : ''}</tr></thead><tbody>${body}</tbody></table>`;
   }
   // clearance
   const head1 = cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * 2 + 1}" class="grp">${escapeHtml(pr.label)}</th>`).join('');

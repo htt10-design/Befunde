@@ -9,45 +9,66 @@ const SYM = { ok: '✓', obs: '!', bad: '✗' };
 
 function pv(n, dec) { return n == null ? '' : formatNum(n, dec); }
 function stCls(st) { return st ? 'st-' + st : ''; }
-function symCell(st) { return `<td class="sym ${stCls(st)}">${st ? SYM[st] : ''}</td>`; }
+function symCell(st) { return `<td class="sym ${stCls(st)}">${st ? SYM[st] + ' ' + escapeHtml(ratingLabel(st)) : ''}</td>`; }
 
-// ---------- Einheitlicher Kopf ----------
-function printHeadHtml(order, sheet, kindText, title) {
+// ---------- Einheitlicher Kopf (wie SDT-Messblatt) ----------
+// Logo mittig, Titel unterstrichen, Kopftabelle zweisprachig:
+// Auftraggeber | Auftrags-Nr. | Neubau-Nr. | Klassifikation
+// Motorfabrikat | Motortyp | Motornr. | Leistung
+function printLogo() {
   const s = appData.settings;
-  const e = sheet ? order.engines[sheet.engine || 0] || {} : null;
-  const t = sheet ? getType(sheet.type) : null;
-  const rows = [];
-  rows.push(['Auftragsnummer', order.orderNo, 'Datum', formatDate(sheet ? sheet.date : order.date)]);
-  rows.push(['Kunde', order.customer, 'Schiff / Anlage', order.vessel]);
-  if (e) {
-    rows.push(['Motor', (order.engines.length > 1 ? engineLabel(order, sheet.engine || 0) + ': ' : '') + engineTypeText(e), 'Motornummer', e.number]);
-    rows.push(['Betriebsstunden', (t.special === 'general' && sheet.data.hours) || e.hours, 'Prüfer', s.name]);
-    if (showMeasure(sheet)) rows.push(['Messmittel', [sheet.data.tool, sheet.data.toolNo ? 'Nr. ' + sheet.data.toolNo : ''].filter(Boolean).join(' · '), 'Temperatur', sheet.data.temp ? sheet.data.temp + ' °C' : '']);
-    const extra = (t.extra || []).map(x => [x.label, (sheet.data.extra || {})[x.k] || '']).filter(x => x[1]);
-    if (t.special === 'endoscopy') extra.push(['Endoskop', sheet.data.scope || ''], ['Zugang', sheet.data.access || '']);
-    if (t.special === 'nozzles') extra.push(['Düsentyp', sheet.data.nozzleType || ''], ['Prüfgerät', sheet.data.tester || '']);
-    if (t.special === 'general') extra.push(['Anlass', sheet.data.reason || ''], ['Zustand', sheet.data.state || '']);
-    for (let i = 0; i < extra.length; i += 2) rows.push([extra[i][0], extra[i][1], extra[i + 1] ? extra[i + 1][0] : '', extra[i + 1] ? extra[i + 1][1] : '']);
-  } else {
-    rows.push(['Ort / Werft', order.location, 'Prüfer', s.name]);
+  if (s.logo === '') return '';
+  return `<img class="pr-logo" src="${s.logo || DEFAULT_LOGO}" alt="">`;
+}
+
+function labelCell(de, en) {
+  return `<th><b>${escapeHtml(de)}</b><small>${escapeHtml(en)}</small></th>`;
+}
+
+function printHeadHtml(order, sheet, title) {
+  const e = sheet ? order.engines[sheet.engine || 0] || {} : order.engines[0] || {};
+  const power = [e.power ? e.power + ' kW' : '', e.rpm ? e.rpm + ' 1/min' : ''].filter(Boolean).join(' / ');
+  const cust = `${escapeHtml(order.customer || '')}${order.vessel ? `<small>${escapeHtml(order.vessel)}</small>` : ''}`;
+  // Zusätzliche Angaben (nur wenn vorhanden) in einer schmalen Zeile
+  const info = [];
+  if (sheet) {
+    const t = getType(sheet.type);
+    if (order.engines.length > 1) info.push(['Motor', engineLabel(order, sheet.engine || 0)]);
+    const hours = (t.special === 'general' && sheet.data.hours) || e.hours;
+    if (hours) info.push(['Betriebsstunden', hours]);
+    (t.extra || []).forEach(x => { const v = (sheet.data.extra || {})[x.k]; if (v) info.push([x.label, v]); });
+    if (t.special === 'endoscopy') info.push(['Endoskop', sheet.data.scope], ['Zugang', sheet.data.access]);
+    if (t.special === 'nozzles') info.push(['Düsentyp', sheet.data.nozzleType], ['Prüfgerät', sheet.data.tester]);
+    if (t.special === 'general') info.push(['Anlass', sheet.data.reason], ['Zustand', sheet.data.state]);
   }
+  const infoHtml = info.filter(x => x[1]).map(x => `<span><b>${escapeHtml(x[0])}:</b> ${escapeHtml(x[1])}</span>`).join('');
   return `
     <div class="pr-head">
-      <div class="pr-brand">
-        ${s.logo ? `<img class="pr-logo" src="${s.logo}" alt="">` : ''}
-        <div>
-          <div class="pr-company">${escapeHtml(s.company || '')}</div>
-          <div class="pr-company-line">${escapeHtml(s.companyLine || '')}</div>
-        </div>
-      </div>
-      <div class="pr-doc">
-        <div class="pr-kind">${escapeHtml(kindText)}</div>
-        <div class="pr-title">${escapeHtml(title)}</div>
-      </div>
+      ${printLogo()}
+      <div class="pr-title">${escapeHtml(title)}</div>
     </div>
     <table class="pr-info">
-      ${rows.map(r => `<tr><th>${escapeHtml(r[0])}</th><td>${escapeHtml(r[1] || '')}</td>${r[2] ? `<th>${escapeHtml(r[2])}</th><td>${escapeHtml(r[3] || '')}</td>` : '<td colspan="2" class="blank"></td>'}</tr>`).join('')}
-    </table>`;
+      <tr>${labelCell('Auftraggeber', 'client')}${labelCell('Auftrags-Nr.', 'order-no')}${labelCell('Neubau-Nr.', 'shipbuilt-no')}${labelCell('Klassifikation', 'classification')}</tr>
+      <tr class="val"><td>${cust}</td><td>${escapeHtml(order.orderNo || '')}</td><td>${escapeHtml(order.newbuild || '')}</td><td>${escapeHtml(order.classification || '')}</td></tr>
+      <tr>${labelCell('Motorfabrikat', 'manufacturer of engine')}${labelCell('Motortyp', 'engine-type')}${labelCell('Motornr.', 'engine-no')}<th><b>Leistung <span class="pr-unit">KW/min-1</span></b><small>engine continous power</small></th></tr>
+      <tr class="val"><td>${escapeHtml(e.make || '')}</td><td>${escapeHtml(e.model || '')}</td><td>${escapeHtml(e.number || '')}</td><td>${escapeHtml(power)}</td></tr>
+    </table>
+    ${infoHtml ? `<div class="pr-extra">${infoHtml}</div>` : ''}`;
+}
+
+// Titel wie auf den Papierblättern: „Messblatt Überstand Laufbuchse“
+function printDocTitle(sheet) {
+  const t = getType(sheet.type);
+  const name = t.printLabel || t.label;
+  let title;
+  if (t.special === 'general') title = 'Befundblatt ' + (sheet.data.reason && sheet.data.reason !== 'Durchsicht' ? sheet.data.reason : 'Durchsicht');
+  else if (t.special === 'serials') title = 'Seriennummern Bauteile';
+  else if (t.special === 'endoscopy') title = 'Befundblatt Endoskopie';
+  else if (t.special === 'nozzles') title = 'Prüfprotokoll Einspritzdüsen';
+  else if (!typeModes(t) || sheet.mode === 'mess') title = 'Messblatt ' + name;
+  else if (sheet.mode === 'befund') title = 'Befundblatt ' + name;
+  else title = 'Mess- und Befundblatt ' + name;
+  return title + (sheet.subtitle ? ' – ' + sheet.subtitle : '');
 }
 
 // ---------- Messtabellen ----------
@@ -64,7 +85,7 @@ function printSpecLine(cfg, spec) {
   ].filter(Boolean).join(' · ');
   if (cfg.kind === 'points') return [
     spec.min || spec.max ? 'Soll ' + (spec.min || '…') + ' – ' + (spec.max || '…') + u : '',
-    spec.spreadMax ? 'Streuung ≤ ' + spec.spreadMax : '',
+    spec.spreadMax && cfg.points.length > 1 ? 'Streuung ≤ ' + spec.spreadMax : '',
     spec.neighborMax ? 'Δ Nachbar ≤ ' + spec.neighborMax : ''
   ].filter(Boolean).join(' · ');
   return cfg.pairs.map(pr => {
@@ -90,7 +111,7 @@ function printMeasureHtml(order, sheet, cfg) {
   let table = '';
   if (cfg.kind === 'grid') {
     table = `<table class="pr-m"><thead>
-      <tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${cfg.planes.map(pl => `<th colspan="${cfg.dirs.length}">${escapeHtml(pl.label)}</th>`).join('')}<th rowspan="2">Oval.</th>${cfg.planes.length > 1 ? '<th rowspan="2">Koniz.</th>' : ''}${cfg.extraCol ? `<th rowspan="2">${escapeHtml(cfg.extraCol.label)}</th>` : ''}<th rowspan="2" class="sym">Bew.</th></tr>
+      <tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${cfg.planes.map(pl => `<th colspan="${cfg.dirs.length}">${escapeHtml(pl.label)}</th>`).join('')}<th rowspan="2">Oval.</th>${cfg.planes.length > 1 ? '<th rowspan="2">Koniz.</th>' : ''}${cfg.extraCol ? `<th rowspan="2">${escapeHtml(cfg.extraCol.label)}</th>` : ''}<th rowspan="2" class="sym">Befund</th></tr>
       <tr>${cfg.planes.map(() => cfg.dirs.map(dr => `<th>${escapeHtml(dr.label)}</th>`).join('')).join('')}</tr></thead><tbody>
       ${res.rows.map(r => `<tr class="${trCls(r.pos)}"><th class="pos">${escapeHtml(r.pos)}</th>
         ${cfg.planes.map(pl => cfg.dirs.map(dr => { const x = r.vals[pl.k + '_' + dr.k]; return v(x.st, (rows[r.pos] || {})[pl.k + '_' + dr.k] ? pv(x.n, dec) : ''); }).join('')).join('')}
@@ -98,14 +119,15 @@ function printMeasureHtml(order, sheet, cfg) {
         ${cfg.extraCol ? v(r.extra && r.extra.st, (rows[r.pos] || {})[cfg.extraCol.k] || '') : ''}${symCell(r.st)}</tr>`).join('')}
       </tbody></table>`;
   } else if (cfg.kind === 'points') {
-    table = `<table class="pr-m"><thead><tr><th class="pos">Zyl.</th>${cfg.points.map(p => `<th>${escapeHtml(p)}</th>`).join('')}<th>Mittel</th><th>Streuung</th>${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}<th class="sym">Bew.</th></tr></thead><tbody>
+    const one = cfg.points.length === 1;
+    table = `<table class="pr-m"><thead><tr><th class="pos">${cfg.posKind === 'cyl' ? 'Zylindernr.' : 'Pos.'}</th>${one ? `<th>${escapeHtml(cfg.points[0])} (mm)</th>` : cfg.points.map(p => `<th>${escapeHtml(p)}</th>`).join('') + '<th>Mittel</th><th>Streuung</th>'}${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}<th class="sym">Befund</th>${cfg.note ? '<th class="note">Bemerkung</th>' : ''}</tr></thead><tbody>
       ${res.rows.map(r => `<tr class="${trCls(r.pos)}"><th class="pos">${escapeHtml(r.pos)}</th>
-        ${r.vals.map(x => v(x.st, pv(x.n, dec))).join('')}${v(r.mean.st, pv(r.mean.n, dec))}${v(r.spread.st, pv(r.spread.n, dec))}
-        ${cfg.neighbor ? v(r.neighbor.st, pv(r.neighbor.n, dec)) : ''}${cfg.extraCol ? `<td>${escapeHtml(r.extraText)}</td>` : ''}${symCell(r.st)}</tr>`).join('')}
+        ${r.vals.map(x => v(x.st, pv(x.n, dec))).join('')}${one ? '' : v(r.mean.st, pv(r.mean.n, dec)) + v(r.spread.st, pv(r.spread.n, dec))}
+        ${cfg.neighbor ? v(r.neighbor.st, pv(r.neighbor.n, dec)) : ''}${cfg.extraCol ? `<td>${escapeHtml(r.extraText)}</td>` : ''}${symCell(r.st)}${cfg.note ? `<td>${escapeHtml((rows[r.pos] || {}).note || '')}</td>` : ''}</tr>`).join('')}
       </tbody></table>`;
   } else {
     table = `<table class="pr-m"><thead>
-      <tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * 2 + 1}">${escapeHtml(pr.label)}</th>`).join('')}<th rowspan="2" class="sym">Bew.</th></tr>
+      <tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * 2 + 1}">${escapeHtml(pr.label)}</th>`).join('')}<th rowspan="2" class="sym">Befund</th></tr>
       <tr>${cfg.pairs.map(pr => cfg.dirs.map(dr => `<th>${escapeHtml(pr.bore)} ${escapeHtml(dr.label)}</th>`).join('') + cfg.dirs.map(dr => `<th>${escapeHtml(pr.shaft)} ${escapeHtml(dr.label)}</th>`).join('') + '<th>Spiel</th>').join('')}</tr></thead><tbody>
       ${res.rows.map(r => `<tr class="${trCls(r.pos)}"><th class="pos">${escapeHtml(r.pos)}</th>
         ${r.pairs.map(pr => pr.bore.concat(pr.shaft).map(x => v(x.st, pv(x.n, dec))).join('') + v(pr.clr.st, pv(pr.clr.n, dec))).join('')}${symCell(r.st)}</tr>`).join('')}
@@ -189,7 +211,7 @@ function specialPrintHtml(order, sheet) {
       <div class="pr-block">
         <div class="pr-block-head"><span>Prüfung Einspritzdüsen</span><span class="pr-block-sum">${rows.filter(r => r.tested).length}/${rows.length} geprüft</span></div>
         <div class="pr-spec">Sollwert Öffnungsdruck: ${sp.min || sp.max ? escapeHtml((sp.min || '…') + ' – ' + (sp.max || '…') + ' bar') : '__________ bar'}</div>
-        <table class="pr-m"><thead><tr><th class="pos">Zyl.</th><th>Düsen-Nr. / SN</th><th>Öffn.-Druck bar</th><th>Strahlbild</th><th>Dichtheit</th><th>Schnarren</th><th>Maßnahme</th><th>Druck neu bar</th><th class="sym">Bew.</th></tr></thead>
+        <table class="pr-m"><thead><tr><th class="pos">Zyl.</th><th>Düsen-Nr. / SN</th><th>Öffn.-Druck bar</th><th>Strahlbild</th><th>Dichtheit</th><th>Schnarren</th><th>Maßnahme</th><th>Druck neu bar</th><th class="sym">Befund</th></tr></thead>
           <tbody>${rows.map(r => `<tr class="${r.pos === 'B1' ? 'bank-start' : ''}"><th class="pos">${escapeHtml(r.pos)}</th><td>${escapeHtml(r.r.sn || '')}</td><td class="num ${stCls(r.p1.st)}">${escapeHtml(r.r.p1 || '')}</td>${ck(r.r.spray)}${ck(r.r.tight)}${ck(r.r.chatter)}<td>${escapeHtml(r.r.action || '')}</td><td class="num ${stCls(r.p2.st)}">${escapeHtml(r.r.p2 || '')}</td>${symCell(r.st)}</tr>`).join('')}</tbody>
         </table>
       </div>`;
@@ -219,26 +241,29 @@ function specialPrintHtml(order, sheet) {
   return '';
 }
 
-// ---------- Ergebnis & Unterschriften ----------
-function printResultHtml(order, sheet) {
-  const r = sheetRating(order, sheet);
+// ---------- Fuß wie SDT-Messblatt ----------
+// Bemerkung / Empfehlung (mit Gesamtbewertung) · Messwerkzeug | Seitenzahl · Datum | Unterschrift | Sonstiges
+function printFootBlock(order, sheet, idx, total) {
+  const r = sheet ? sheetRating(order, sheet) : null;
   const box = v => `<span class="pr-box">${r === v ? '☒' : '☐'} ${escapeHtml(ratingInfo(v).label)}</span>`;
-  const sigImg = sig => sig && sig.img ? `<img src="${sig.img}" alt="">` : '';
-  const sigMeta = sig => sig ? escapeHtml([sig.name, sig.at ? new Date(sig.at).toLocaleDateString('de-DE') : ''].filter(Boolean).join(', ')) : '';
+  const sig = sheet && sheet.signWorker;
+  const cust = sheet && sheet.signCustomer;
+  const tool = sheet && showMeasure(sheet) ? [sheet.data.tool, sheet.data.toolNo ? 'Nr. ' + sheet.data.toolNo : '', sheet.data.temp ? sheet.data.temp + ' °C' : ''].filter(Boolean).join(' · ') : '';
+  const remark = sheet ? [sheet.summary, sheet.advice].filter(Boolean).join('\n') : '';
   return `
-    <div class="pr-result">
-      <div class="pr-result-row"><b>Gesamtbewertung:</b> ${box('ok')} ${box('obs')} ${box('bad')}</div>
-      ${sheet.summary ? `<div class="pr-result-row"><b>Zusammenfassung:</b> <span class="pre">${escapeHtml(sheet.summary)}</span></div>` : ''}
-      <div class="pr-result-row"><b>Empfehlung / Maßnahmen:</b> <span class="pre">${escapeHtml(sheet.advice || '')}</span></div>
-    </div>
-    <div class="pr-signs">
-      <div class="pr-sign"><div class="pr-sign-img">${sigImg(sheet.signWorker)}</div><div class="pr-sign-line">Prüfer / Monteur ${sigMeta(sheet.signWorker) ? '· ' + sigMeta(sheet.signWorker) : ''}</div></div>
-      <div class="pr-sign"><div class="pr-sign-img">${sigImg(sheet.signCustomer)}</div><div class="pr-sign-line">Kunde / Abnahme ${sigMeta(sheet.signCustomer) ? '· ' + sigMeta(sheet.signCustomer) : ''}</div></div>
-    </div>`;
-}
-
-function printFootHtml(order, idx, total) {
-  return `<div class="pr-foot"><span>Auftrag ${escapeHtml(order.orderNo || '–')}${total > 1 ? ' · Blatt ' + idx + ' von ' + total : ''}</span><span>Erstellt mit Befunde · ${escapeHtml(new Date().toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' }))}</span></div>`;
+    <table class="pr-footbox">
+      <colgroup><col style="width:22%"><col style="width:42%"><col></colgroup>
+      <tr class="pr-remark"><td colspan="3"><b>Bemerkung / Empfehlung:</b>
+        ${sheet ? `<span class="pr-rating">${box('ok')} ${box('obs')} ${box('bad')}</span>` : ''}
+        <div class="pre">${escapeHtml(remark)}</div></td></tr>
+      <tr class="pr-tool"><td colspan="2"><b>Messwerkzeug:</b><div class="pr-hand">${escapeHtml(tool)}</div></td><td><b>Seitenzahl</b><div class="pr-hand">${idx} von ${total}</div></td></tr>
+      <tr class="pr-sigrow">
+        <td><b>Datum:</b><div class="pr-hand">${escapeHtml(formatDate(sheet ? sheet.date : order.date))}</div></td>
+        <td><b>Unterschrift:</b><div class="pr-sig">${sig && sig.img ? `<img src="${sig.img}" alt="">` : ''}</div><small>${escapeHtml((sig && sig.name) || appData.settings.name || '')}</small></td>
+        <td><b>Sonstiges:</b>${cust && cust.img ? `<div class="pr-sig small"><img src="${cust.img}" alt=""></div><small>Abnahme Kunde${cust.name ? ': ' + escapeHtml(cust.name) : ''}</small>` : ''}</td>
+      </tr>
+    </table>
+    <div class="pr-pageno">Seite ${idx} von ${total}</div>`;
 }
 
 function printSheetHtml(order, sheet, idx, total) {
@@ -248,13 +273,11 @@ function printSheetHtml(order, sheet, idx, total) {
   if (showInspect(sheet)) body += t.inspect.map(cfg => printInspectHtml(order, sheet, cfg)).join('');
   if (t.special) body += specialPrintHtml(order, sheet);
   body += printFindingsHtml(sheet);
-  const title = t.label + (sheet.subtitle ? ' – ' + sheet.subtitle : '');
   return `
     <div class="pr-page">
-      ${printHeadHtml(order, sheet, sheetKindText(sheet), title)}
+      ${printHeadHtml(order, sheet, printDocTitle(sheet))}
       ${body}
-      ${printResultHtml(order, sheet)}
-      ${printFootHtml(order, idx, total)}
+      ${printFootBlock(order, sheet, idx, total)}
     </div>`;
 }
 
@@ -302,8 +325,8 @@ function printCoverHtml(order, sheets) {
   const overall = worstRating(all.filter(Boolean));
   return `
     <div class="pr-page pr-cover">
-      ${printHeadHtml(order, null, 'Befundbericht', [order.vessel, order.customer].filter(Boolean)[0] || 'Befundbericht')}
-      <table class="pr-info">
+      ${printHeadHtml(order, null, 'Befundbericht' + (order.vessel ? ' ' + order.vessel : ''))}
+      <table class="pr-list pr-engines">
         ${order.engines.map((e, i) => `<tr><th>${escapeHtml(engineLabel(order, i))}</th><td>${escapeHtml(engineTypeText(e))}</td><th>Motornr. / Bh</th><td>${escapeHtml([e.number, e.hours ? e.hours + ' Bh' : ''].filter(Boolean).join(' · '))}</td></tr>`).join('')}
         ${order.reason ? `<tr><th>Anlass / Auftrag</th><td colspan="3" class="pre">${escapeHtml(order.reason)}</td></tr>` : ''}
       </table>
@@ -321,7 +344,7 @@ function printCoverHtml(order, sheets) {
         </tbody></table>` : '<p class="pr-none">Keine Auffälligkeiten festgestellt.</p>'}
       </div>
       ${advice.length ? `<div class="pr-block"><div class="pr-block-head"><span>Empfehlungen</span></div><table class="pr-list"><colgroup><col style="width:28%"><col></colgroup><tbody>${advice.map(a => `<tr><td>${escapeHtml(a.sheet)}</td><td class="pre">${escapeHtml(a.text)}</td></tr>`).join('')}</tbody></table></div>` : ''}
-      ${printFootHtml(order, 1, sheets.length + 1)}
+      ${printFootBlock(order, null, 1, sheets.length + 1)}
     </div>`;
 }
 

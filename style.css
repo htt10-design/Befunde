@@ -874,3 +874,46 @@ details.collapse[open] > summary::after { content: '▴'; }
   tr { page-break-inside: avoid; break-inside: avoid; }
   thead { display: table-header-group; }
 }
+.m-in.txt.note { width: 150px; text-align: left; }
+
+/* ---------- Druck: Kopf & Fuß wie SDT-Messblatt ---------- */
+@media print {
+  .pr-head { display: flex; flex-direction: column; align-items: center; gap: 8pt; border: 0; padding: 0; margin: 0 0 10pt; text-align: center; }
+  .pr-logo { height: 34pt; max-width: 140pt; object-fit: contain; }
+  .pr-title { font-size: 19pt; font-weight: 700; text-decoration: underline; text-underline-offset: 3pt; text-decoration-thickness: 1.5pt; line-height: 1.2; }
+
+  #print-area .pr-info { table-layout: fixed; border: 1.2pt solid #000; margin-bottom: 6pt; }
+  #print-area .pr-info th { width: 25%; background: #fff; text-transform: none; letter-spacing: 0; font-size: 8.5pt; font-weight: 400; padding: 2pt 4pt 1pt; border-bottom: 0; line-height: 1.15; }
+  #print-area .pr-info th b { display: block; font-weight: 700; font-size: 9pt; }
+  #print-area .pr-info th small { display: block; font-size: 8pt; }
+  #print-area .pr-info th .pr-unit { margin-left: 8pt; }
+  #print-area .pr-info tr.val td { width: 25%; border-top: 0; height: 20pt; font-size: 11pt; padding: 1pt 4pt 3pt; vertical-align: bottom; }
+  #print-area .pr-info tr.val td small { display: block; font-size: 8pt; }
+  .pr-extra { display: flex; flex-wrap: wrap; gap: 3pt 14pt; font-size: 8.5pt; border: .5pt solid #000; padding: 3pt 5pt; margin: -6pt 0 8pt; border-top: 0; }
+
+  /* Abschnittstitel als Kasten über der Tabelle (wie „Buchsenüberstand“) */
+  .pr-block { margin-bottom: 9pt; }
+  .pr-block-head { border: 1.2pt solid #000; border-bottom: 0; padding: 3pt 5pt; margin: 0; font-size: 11pt; }
+  .pr-spec { border: .5pt solid #000; border-top: .5pt solid #000; border-bottom: 0; padding: 2pt 5pt; margin: 0; }
+  #print-area .pr-block > table { border: 1.2pt solid #000; }
+  #print-area .pr-m th.pos { width: auto; }
+  #print-area td.sym, #print-area th.sym { width: 48pt; white-space: nowrap; font-weight: 400; text-align: left; }
+  #print-area td.sym.st-bad { font-weight: 700; }
+  #print-area th.note { width: 28%; }
+  #print-area .pr-engines th { width: 22%; background: #f1f1f1; }
+
+  /* Fuß */
+  #print-area .pr-footbox { table-layout: fixed; border: 1.2pt solid #000; margin-top: 8pt; break-inside: avoid; page-break-inside: avoid; }
+  #print-area .pr-footbox td { font-size: 9pt; vertical-align: top; padding: 3pt 5pt; }
+  #print-area .pr-footbox td b { font-size: 9.5pt; }
+  #print-area .pr-remark td { height: 52pt; }
+  .pr-rating { float: right; }
+  .pr-rating .pr-box { margin-left: 10pt; }
+  .pr-hand { font-size: 11pt; margin-top: 3pt; min-height: 14pt; }
+  #print-area .pr-sigrow td { height: 46pt; }
+  .pr-sig { height: 30pt; display: flex; align-items: flex-end; }
+  .pr-sig.small { height: 24pt; }
+  .pr-sig img { max-height: 100%; max-width: 100%; filter: grayscale(1) contrast(2); }
+  #print-area .pr-sigrow small { font-size: 7.5pt; display: block; }
+  .pr-pageno { text-align: center; font-size: 9pt; margin-top: 8pt; }
+}

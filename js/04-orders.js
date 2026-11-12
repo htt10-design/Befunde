@@ -137,7 +137,7 @@ function datalists() {
 
 function newOrder(fields) {
   const order = normalizeOrder(Object.assign({
-    id: uid(), orderNo: '', customer: '', vessel: '', location: '', reason: '', date: todayISO(),
+    id: uid(), orderNo: '', customer: '', vessel: '', newbuild: '', classification: '', location: '', reason: '', date: todayISO(),
     status: 'offen', created: new Date().toISOString(), updated: new Date().toISOString(), engines: [newEngine()], sheets: []
   }, fields));
   // Bekannter Kunde/Schiff → Motordaten vom letzten Auftrag übernehmen
@@ -267,11 +267,14 @@ function renderOrder() {
           ${field('Datum', 'date', order.date, { type: 'date' })}
           ${field('Kunde', 'customer', order.customer, { list: 'dl-customers' })}
           ${field('Schiff / Anlage', 'vessel', order.vessel, { list: 'dl-vessels' })}
+          ${field('Neubau-Nr.', 'newbuild', order.newbuild)}
+          ${field('Klassifikation', 'classification', order.classification, { list: 'dl-class' })}
           ${field('Ort / Werft', 'location', order.location)}
           ${field('Ansprechpartner', 'contact', order.contact)}
         </div>
         ${textArea('Anlass / Auftrag', 'reason', order.reason, { placeholder: 'z.B. Durchsicht nach 12.000 Bh, Ölverbrauch erhöht …', rows: 2 })}
         ${datalists()}
+        <datalist id="dl-class"><option value="DNV"><option value="BV"><option value="LR"><option value="ABS"><option value="RINA"><option value="ohne Klasse"></datalist>
       </div>
     </details>
 
@@ -314,6 +317,8 @@ function engineFormHtml(order, e, i) {
         ${field('Motortyp', p + 'model', e.model, { placeholder: 'z.B. 16V 4000 M63', rerender: true })}
         ${field('Motornummer', p + 'number', e.number)}
         ${field('Betriebsstunden', p + 'hours', e.hours, { inputmode: 'numeric' })}
+        ${field('Leistung (kW)', p + 'power', e.power, { inputmode: 'numeric' })}
+        ${field('Drehzahl (1/min)', p + 'rpm', e.rpm, { inputmode: 'numeric' })}
       </div>
       <div class="grid-2 engine-cfg">
         <div class="field"><span>Bauform</span>
@@ -510,7 +515,7 @@ async function deleteOrder() {
 function duplicateOrder() {
   const src = getActiveOrder();
   const copy = newOrder({
-    orderNo: '', customer: src.customer, vessel: src.vessel, location: src.location,
+    orderNo: '', customer: src.customer, vessel: src.vessel, newbuild: src.newbuild, classification: src.classification, location: src.location,
     engines: src.engines.map(e => ({ ...e, hours: '' }))
   });
   copy.sheets = src.sheets.map(s => {
