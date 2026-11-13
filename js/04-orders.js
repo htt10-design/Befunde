@@ -96,6 +96,7 @@ function orderListHtml(list, total) {
 function setOrderFilter(f) { orderFilter = f; renderOrders(); }
 
 function openOrder(id) {
+  commitFocus();
   activeOrderId = id;
   showView('order');
 }

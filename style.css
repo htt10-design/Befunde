@@ -991,3 +991,33 @@ details.collapse[open] > summary::after { content: '▴'; }
   .pr-sketch .sk-house { fill: #d6d6d6; stroke: #000; }
   .pr-sketch .sk-ghost, .pr-sketch .sk-ghost-line { stroke: #000; }
 }
+
+/* ---------- Ersatzteile / Bestellliste ---------- */
+.parts-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.pk { border-radius: 12px; padding: 8px 10px; display: flex; flex-direction: column; font-size: 11.5px; font-weight: 700; color: var(--muted); background: var(--accent-softer); }
+.pk b { font-size: 20px; line-height: 1.1; }
+.pk-order { background: var(--c-bad); } .pk-order b { color: var(--t-bad); }
+.pk-open { background: var(--c-obs); } .pk-open b { color: var(--t-obs); }
+.pk-ordered b { color: var(--accent-strong); }
+.part-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.part { border: 1px solid var(--border); border-left: 4px solid var(--border); border-radius: 12px; padding: 10px; background: var(--surface-2); }
+.part.ps-order { border-left-color: var(--t-bad); } .part.ps-open { border-left-color: #e0a512; } .part.ps-ordered { border-left-color: var(--accent); }
+.part input, .part textarea { width: 100%; border: 1.5px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px 10px; min-height: 40px; margin-top: 8px; }
+.part textarea { resize: vertical; }
+.part .f-head .f-part { margin-top: 0; font-weight: 700; }
+.part-grid { display: grid; grid-template-columns: 1fr 80px 1.3fr; gap: 8px; }
+.part-status { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.part-status button { border: 1.5px solid var(--border); background: var(--surface); border-radius: 10px; padding: 9px 4px; font-weight: 700; font-size: 13px; color: var(--muted); }
+.part-status .pst-order.on { background: var(--t-bad); border-color: var(--t-bad); color: #fff; }
+.part-status .pst-open.on { background: #e0a512; border-color: #e0a512; color: #fff; }
+.part-status .pst-ordered.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.part-status .pst-none.on { background: #7d93a8; border-color: #7d93a8; color: #fff; }
+@media (max-width: 560px) {
+  .part-grid { grid-template-columns: 1fr 70px; }
+  .part-grid input:last-child { grid-column: 1 / -1; }
+  .part-status { grid-template-columns: repeat(2, 1fr); }
+}
+@media print {
+  #print-area .pr-parts tr.grp td { background: #e8e8e8; font-weight: 700; }
+  #print-area .pr-parts td { height: 14pt; }
+}

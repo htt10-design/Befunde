@@ -23,6 +23,7 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(file).pipe(res);
 });
 
+let errorsGlobal = [];
 function assert(cond, msg, errors) { if (!cond) errors.push('ASSERT: ' + msg); }
 
 // Kleines Testbild (PNG, 2×2 px) für den Foto-Upload
@@ -34,6 +35,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
   fs.mkdirSync(OUT, { recursive: true });
   const browser = await chromium.launch();
   const errors = [];
+  errorsGlobal = errors;
 
   for (const [label, viewport] of [['mobile', { width: 390, height: 844 }], ['desktop', { width: 1280, height: 900 }]]) {
     const ctx = await browser.newContext({ viewport });
@@ -198,10 +200,31 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     assert(pp3 === 3, 'Kolbenüberstand 3 Messpunkte: ' + pp3, errors);
     await shot('12-piston-3pt');
 
+    // Ersatzteile / Bestellliste
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'parts').id));
+    await page.click('.parts-card .btn-primary');
+    await page.fill('[data-bind="data.items.0.part"]', 'Kolbenring');
+    await page.fill('[data-bind="data.items.0.pos"]', 'A3');
+    await page.fill('[data-bind="data.items.0.reason"]', 'gebrochen');
+    await page.evaluate(() => addPhotos('data.items.0.photos'));
+    await page.setInputFiles('#photo-input', { name: 'p.png', mimeType: 'image/png', buffer: PNG });
+    await page.waitForFunction(() => (getActiveSheet().data.items[0].photos || []).length > 0, null, { timeout: 5000 }).catch(() => errors.push('Foto Bauteil nicht gespeichert'));
+    await page.click('.parts-card .btn-primary');
+    await page.fill('[data-bind="data.items.1.part"]', 'Ladeluftkühler');
+    await page.click('[data-set="data.items.1.status"][data-val="open"]');
+    await page.fill('[data-bind="data.items.1.note"]', 'Rücksprache Kunde');
+    const parts = await page.evaluate(() => [getActiveSheet().data.items.map(i => i.status).join(','), sheetAutoRating(getActiveOrder(), getActiveSheet()), sheetIssues(getActiveOrder(), getActiveSheet()).map(x => x.text).join(' | ')]);
+    assert(parts[0] === 'order,open' && parts[1] === 'bad' && /Bestellen: Kolbenring \(A3\)/.test(parts[2]) && /Klären: Ladeluftkühler/.test(parts[2]), 'Bestellliste: Status, Bewertung, Handlungsbedarf: ' + parts.join(' / '), errors);
+    await shot('15-parts');
+
     // Kurbelwelle Zapfen: Lageranzahl V16 = 9 Grundlager, 8 Hublager
     await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'kw_journal').id));
     const kw = await page.evaluate(() => [document.querySelectorAll('[data-mkey="kgl"] tbody tr').length, document.querySelectorAll('[data-mkey="khl"] tbody tr').length]);
     assert(kw[0] === 9 && kw[1] === 8, 'KW 9 Grundlager / 8 Hublager: ' + kw, errors);
+
+    // Kein Wert darf beim Blattwechsel im falschen Blatt landen
+    const stray = await page.evaluate(() => getActiveOrder().sheets.filter(s => s.type !== 'parts' && s.data.items !== undefined).map(s => s.type));
+    assert(!stray.length, 'keine fremden Werte in anderen Blättern: ' + stray.join(', '), errors);
 
     // Druck: Deckblatt + alle Blätter → PDF
     await page.click('#btn-back');
@@ -250,4 +273,4 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
   server.close();
   if (errors.length) { console.log('FEHLER:\n' + errors.join('\n')); process.exit(1); }
   console.log('Smoke-Test OK – Screenshots/PDF in ' + OUT);
-})().catch(e => { console.error(e); server.close(); process.exit(1); });
+})().catch(e => { console.error(e); if (typeof errorsGlobal !== 'undefined' && errorsGlobal.length) console.log('Bis dahin:\n' + errorsGlobal.join('\n')); server.close(); process.exit(1); });

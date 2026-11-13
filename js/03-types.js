@@ -14,6 +14,7 @@
 
 const ICONS = {
   doc: '<path d="M7 3h7l5 5v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/>',
+  cart: '<path d="M3 4h2l2.4 10.2a1 1 0 0 0 1 .8h8.8a1 1 0 0 0 1-.8L20 8H6.2"/><circle cx="9.5" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
   tag: '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="8" cy="8" r="1.6"/><path d="M11 13l3 3M13 11l3 3"/>',
   scope: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/><circle cx="11" cy="11" r="2"/>',
   cyl: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M7 7h10M7 17h10"/>',
@@ -66,6 +67,11 @@ const SHEET_TYPES = [
     id: 'serials', group: 'allg', icon: 'tag', label: 'Seriennummern Bauteile',
     desc: 'HD-Pumpen, Turbolader, Pleuel, Zylinderköpfe … alt / neu',
     special: 'serials'
+  },
+  {
+    id: 'parts', group: 'allg', icon: 'cart', label: 'Ersatzteile / Bestellliste',
+    desc: 'Defekte Bauteile: bestellen, noch klären, bestellt – mit Fotos',
+    special: 'parts'
   },
   {
     id: 'endoscopy', group: 'zyl', icon: 'scope', label: 'Endoskopie',
@@ -201,6 +207,7 @@ function sheetKindText(sheet) {
   const t = getType(sheet.type);
   if (t.special === 'general') return 'Befundblatt';
   if (t.special === 'serials') return 'Bauteilliste';
+  if (t.special === 'parts') return 'Bestellliste';
   if (t.special === 'endoscopy') return 'Befundblatt';
   if (t.special === 'nozzles') return 'Prüfprotokoll';
   if (!typeModes(t)) return 'Messblatt';

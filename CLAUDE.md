@@ -13,7 +13,7 @@ Endoskopie, Düsen, Seriennummern, allgemeine Durchsicht). Design, Aufbau und Ko
 | 03-types | **Alle Blattarten in `SHEET_TYPES`** + Auswertung (`computeGrid/Points/Clearance`, `sheetAutoRating`) |
 | 04-orders | Auftragsliste, Neuer Auftrag, Übernahme aus Zettel-Job (liest IndexedDB `zettel-job` nur lesend), Auftrag mit Motoren, Blatt hinzufügen (Modus mess/befund/beides, Pakete), `createSheet` |
 | 05-editor | Blatt-Editor: `bindForm` (data-bind/data-set/data-tag, Event-Delegation), Messtabellen + `refreshMeasure`, Sichtbefund, Befunde & Fotos, Ergebnis, Blatt-Menü |
-| 06-special | Endoskopie (SVG Draufsicht, KS links, A oben), Düsen, Seriennummern, Allgemeines Befundblatt |
+| 06-special | Endoskopie (SVG Draufsicht, KS links, A oben), Düsen, Seriennummern, Allgemeines Befundblatt, Ersatzteile/Bestellliste (`data.items[]` mit `status` order/open/ordered/none, `PART_STATUS`), Skizzen (`sketchSvg`: liner/fit/piston) |
 | 07-photos | Fotos verkleinern → Store `files`, im Blatt nur IDs in `photos`-Arrays; `collectPhotoIds` |
 | 08-signature | Unterschrift (aus Zettel-Job übernommen) |
 | 09-print | Druck A4 im Stil der SDT-Papierblätter: `printHeadHtml` (Logo mittig, Titel unterstrichen, zweisprachige Kopftabelle Auftraggeber/Auftrags-Nr./Neubau-Nr./Klassifikation · Motorfabrikat/Motortyp/Motornr./Leistung), `printFootBlock` (Bemerkung/Empfehlung, Messwerkzeug, Seitenzahl, Datum, Unterschrift, Sonstiges), Titel über `printDocTitle` („Messblatt Überstand Laufbuchse“), Deckblatt mit Handlungsbedarf (`sheetIssues`) |
@@ -38,6 +38,7 @@ Eintrag in `SHEET_TYPES` (03-types): `measure` (grid/points/clearance; points mi
 ## Konventionen
 
 - Klassische `<script>`-Dateien, globaler Scope; aus `onclick` aufgerufene Funktionen über `Object.assign(window, …)`.
+- Vor jedem Wechsel von Blatt/Auftrag/Ansicht `commitFocus()` (steckt in `showView`, `openSheet`, `openOrder`) – sonst landet ein spätes „change“ im neuen Blatt.
 - Benutzertext in `innerHTML` immer mit `escapeHtml()`. Datenmodell abwärtskompatibel halten (`normalizeData`).
 - Neue Datei in `js/` → in `index.html` UND in `sw.js` `APP_SHELL_FILES`.
 - **Bei jeder Änderung an index.html / js / style.css `CACHE_VERSION` in `sw.js` hochzählen.**
