@@ -157,6 +157,7 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'liner_fit').id));
     const fitBoth = await page.evaluate(() => document.querySelectorAll('[data-mkey="lf"] tbody tr:first-child .m-in').length);
     assert(fitBoth === 8, 'Einpassen Gehäuse + Buchse: 8 Felder: ' + fitBoth, errors);
+    assert(await page.locator('[data-mkey="lf"] .sketch svg').count() === 1, 'Skizze Laufbuchse einpassen sichtbar', errors);
     await page.click('[data-set="data.lf.sides"][data-val="bore"]');
     const fitBore = await page.evaluate(() => [document.querySelectorAll('[data-mkey="lf"] tbody tr:first-child .m-in').length, document.querySelectorAll('[data-d^="lf|"]').length]);
     assert(fitBore[0] === 4 && fitBore[1] === 0, 'Nur Gehäusebohrung: 4 Felder, kein Spiel: ' + fitBore, errors);

@@ -239,7 +239,8 @@ function measureCardHtml(order, sheet, cfg, engine) {
           </div>
         </div>
         ${cfg.boreOnly ? '<p class="muted small-text side-hint">Buchsenmaß und Spiel entfallen – z.B. wenn neue Buchsen eingebaut werden.</p>' : ''}
-      </div>` : ''}
+      </div>
+      ${cfg.sketch && !cfg.planeOptions && !cfg.pointOptions ? `<div class="sketch sketch-wide">${sketchSvg(cfg)}</div>` : ''}` : ''}
       ${cfg.planeOptions || cfg.pointOptions ? `
       <div class="cfg-row">
         <div class="field"><span>${cfg.planeOptions ? 'Anzahl Messebenen' : 'Anzahl Messpunkte'}</span>
@@ -255,7 +256,7 @@ function measureCardHtml(order, sheet, cfg, engine) {
         </div>
       </details>
       ${quickHint}
-      ${cfg.dirHint || cfg.pointHint || (cfg.clrHint && !cfg.boreOnly) ? `<p class="hint">ℹ️ ${escapeHtml(cfg.dirHint || cfg.pointHint || cfg.clrHint)}</p>` : ''}
+      ${cfg.dirHint || cfg.pointHint || cfg.clrHint ? `<p class="hint">ℹ️ ${escapeHtml(cfg.dirHint || cfg.pointHint || (cfg.boreOnly ? cfg.clrHint.split('. Spiel')[0] : cfg.clrHint))}</p>` : ''}
       <div class="mtable-wrap">${measureTableHtml(cfg, d, pos, p)}</div>
       <div class="legend"><span class="lg lg-ok">i.O.</span><span class="lg lg-obs">Verschleißgrenze / beobachten</span><span class="lg lg-bad">außer Toleranz</span></div>
     </div>`;
