@@ -46,6 +46,7 @@ function renderOrders() {
         <button class="chip ${orderFilter === 'fertig' ? 'active' : ''}" onclick="setOrderFilter('fertig')">Abgeschlossen (${counts.fertig})</button>
         <button class="chip ${orderFilter === 'all' ? 'active' : ''}" onclick="setOrderFilter('all')">Alle</button>
       </div>
+      <button class="chip chip-action" onclick="document.getElementById('import-input').click()">📂 Auftrag laden (Datei vom Monteur)</button>
     </div>` : ''}
     <div id="order-list" class="sheet-list">${orderListHtml(list, all.length)}</div>`;
 }
@@ -65,7 +66,7 @@ function orderListHtml(list, total) {
       <h3>Noch keine Aufträge</h3>
       <p>Lege einen Auftrag an und füge die passenden Mess- und Befundblätter hinzu.</p>
       <button class="btn btn-primary" onclick="openNewOrderModal()">＋ Ersten Auftrag anlegen</button>
-      <p class="muted small-text" style="margin-top:14px">Nur mal schauen? <button class="link-btn" onclick="createDemoOrder()">Beispielauftrag anlegen</button></p>
+      <p class="muted small-text" style="margin-top:14px">Im Büro? <button class="link-btn" onclick="document.getElementById('import-input').click()">Auftrag aus Datei laden</button> · Nur mal schauen? <button class="link-btn" onclick="createDemoOrder()">Beispielauftrag anlegen</button></p>
     </div>`;
   if (!list.length) return `<div class="empty small">Keine Aufträge gefunden.</div>`;
   return list.map(o => {
@@ -84,6 +85,7 @@ function orderListHtml(list, total) {
         <div class="sc-bottom">
           <span class="sc-hours">${o.sheets.length} ${o.sheets.length === 1 ? 'Blatt' : 'Blätter'}</span>
           <span class="sc-badges">
+            ${o.sheets.length ? `<span class="sc-report" role="button" onclick="event.stopPropagation();openReportView('${o.id}','report')">📄 Bericht</span>` : ''}
             ${bad ? `<span class="badge rb-bad">${bad}× n.i.O.</span>` : ''}
             ${obs ? `<span class="badge rb-obs">${obs}× beobachten</span>` : ''}
             ${!bad && !obs && ratings.some(r => r === 'ok') ? '<span class="badge rb-ok">i.O.</span>' : ''}
@@ -264,7 +266,11 @@ function renderOrder() {
       <span class="rc-icon">${icon('doc')}</span>
       <span class="rc-text"><b>Befundbericht erstellen</b><small>Alle Blätter zusammengefasst: Ergebnis, Handlungsbedarf, Empfehlung, Fotos – drucken oder als PDF</small></span>
       <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
-    </button>` : ''}
+    </button>
+    <div class="order-actions">
+      <button class="btn btn-soft" onclick="openReportView()">👁 Bericht ansehen</button>
+      <button class="btn btn-soft" onclick="shareOrder()">📤 An Büro senden</button>
+    </div>` : ''}
 
     <details class="card collapse" ${order.sheets.length ? '' : 'open'}>
       <summary class="card-title">Auftragsdaten</summary>

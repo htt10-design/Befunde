@@ -135,6 +135,8 @@ async function initApp() {
   applyTheme();
   requestPersistentStorage();
   showView('orders');
+  openFromLink();
+  window.addEventListener('hashchange', openFromLink);
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW-Registrierung fehlgeschlagen', e));
   }
@@ -157,7 +159,7 @@ function showView(name) {
   currentView = name;
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));
-  const inSub = name === 'order' || name === 'sheet';
+  const inSub = name === 'order' || name === 'sheet' || name === 'report';
   document.getElementById('btn-back').hidden = !inSub;
   document.getElementById('btn-print').hidden = !inSub;
   document.getElementById('btn-menu').hidden = !inSub;
@@ -169,6 +171,7 @@ function showView(name) {
   if (name === 'order') renderOrder();
   if (name === 'sheet') renderSheet();
   if (name === 'settings') renderSettings();
+  if (name === 'report') renderReportView();
   window.scrollTo(0, 0);
 }
 
@@ -178,17 +181,19 @@ function setTopbarTitle(text) {
 
 function goBack() {
   flushSave();
-  if (currentView === 'sheet') showView('order');
+  if (currentView === 'sheet' || currentView === 'report') showView('order');
   else showView('orders');
 }
 
 function printCurrent() {
   if (currentView === 'sheet') printSheets([getActiveSheet()]);
+  else if (currentView === 'report') printReportView();
   else if (currentView === 'order') openPrintChooser();
 }
 
 function openContextMenu() {
   if (currentView === 'sheet') openSheetMenu();
+  else if (currentView === 'report') openReportViewMenu();
   else if (currentView === 'order') openOrderMenu();
 }
 
