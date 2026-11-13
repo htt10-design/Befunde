@@ -256,6 +256,40 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
       await page.emulateMedia({ media: 'screen' });
     }
 
+    // Berichtsansicht in der App
+    await page.evaluate(() => openReportView(null, 'report'));
+    await page.waitForSelector('#view-report.active #paper .pr-page');
+    const rv = await page.evaluate(() => [document.querySelectorAll('#paper .pr-page').length, getComputedStyle(document.querySelector('#paper .pr-title')).textDecorationLine]);
+    assert(rv[0] === 1 && /underline/.test(rv[1]), 'Berichtsansicht zeigt Papierseite im Druckstil: ' + rv, errors);
+    await page.click('#view-report .chip >> nth=1');
+    await page.waitForFunction(n => document.querySelectorAll('#paper .pr-page').length === n, types.length + 1, { timeout: 5000 }).catch(() => errors.push('Berichtsansicht + alle Blätter'));
+    await shot('16-report-view');
+
+    // Büro: Auftrag als Datei senden → anderes Gerät lädt sie → Link öffnet Bericht
+    if (label === 'desktop') {
+      await page.evaluate(() => { navigator.canShare = null; });
+      const [dl] = await Promise.all([page.waitForEvent('download'), page.evaluate(() => shareOrder())]);
+      const file = path.join(OUT, 'auftrag-export.json');
+      await dl.saveAs(file);
+      const office = await browser.newContext({ viewport });
+      const op = await office.newPage();
+      op.on('pageerror', e => errors.push(`[büro] ${e.message}`));
+      op.on('dialog', d => d.accept());
+      await op.goto(url);
+      await op.waitForFunction(() => typeof appData !== 'undefined' && appData);
+      assert(await op.evaluate(() => appData.orders.length) === 0, 'Büro-Gerät startet leer', errors);
+      await op.setInputFiles('#import-input', file);
+      await op.waitForSelector('#view-report.active #paper .pr-page', { timeout: 8000 }).catch(() => errors.push('Büro: Bericht nach Import nicht angezeigt'));
+      const photosOk = await op.evaluate(() => Promise.all(collectPhotoIds(getActiveOrder()).map(id => getFile(id))).then(b => b.length > 0 && b.every(Boolean)));
+      assert(photosOk, 'Büro: Fotos mit übertragen', errors);
+      await op.goto(url.replace('index.html', 'index.html#auftrag=x'));
+      await op.goto(url + '#bericht=' + encodeURIComponent(orderNo));
+      await op.waitForSelector('#view-report.active #paper .pr-page', { timeout: 8000 }).catch(() => errors.push('Büro: Direktlink öffnet Bericht nicht'));
+      await op.screenshot({ path: path.join(OUT, 'buero-bericht.png'), fullPage: false });
+      await office.close();
+    }
+    await page.click('#btn-back');
+
     // Einstellungen, Beispielauftrag, Dunkelmodus
     await page.click('#btn-back');
     await page.click('.nav-item[data-view="settings"]');

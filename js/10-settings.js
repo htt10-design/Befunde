@@ -156,8 +156,8 @@ async function onImportInput(ev) {
     await writeFiles(data.files);
     appData.orders.push(o);
     saveData(true);
-    showToast('Auftrag geladen');
-    openOrder(o.id);
+    showToast('Auftrag ' + (o.orderNo || '') + ' geladen');
+    openReportView(o.id, 'report');
     return;
   }
   if (data.type === 'befunde-backup' && data.appData) {

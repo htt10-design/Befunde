@@ -17,8 +17,12 @@ Endoskopie, Düsen, Seriennummern, allgemeine Durchsicht). Design, Aufbau und Ko
 | 07-photos | Fotos verkleinern → Store `files`, im Blatt nur IDs in `photos`-Arrays; `collectPhotoIds` |
 | 08-signature | Unterschrift (aus Zettel-Job übernommen) |
 | 09-print | Druck A4 im Stil der SDT-Papierblätter: `printHeadHtml` (Logo mittig, Titel unterstrichen, zweisprachige Kopftabelle Auftraggeber/Auftrags-Nr./Neubau-Nr./Klassifikation · Motorfabrikat/Motortyp/Motornr./Leistung), `printFootBlock` (Bemerkung/Empfehlung, Messwerkzeug, Seitenzahl, Datum, Unterschrift, Sonstiges), Titel über `printDocTitle` („Messblatt Überstand Laufbuchse“), Deckblatt mit Handlungsbedarf (`sheetIssues`) |
-| 11-report | Zusammengefasster **Befundbericht** je Auftrag: Button am Auftrag → Dialog (Stand der Blätter, `order.reportSummary/reportAdvice/reportRating`, Optionen Fotos/Anlagen) → Druck mit Ergebnis, Kurzfassung je Blatt (`sheetDigest`), Handlungsbedarf, Empfehlung, Fotodoku, optional alle Blätter als Anlage |
+| 11-report | Zusammengefasster **Befundbericht** je Auftrag: Button am Auftrag → Dialog (Stand der Blätter, `order.reportSummary/reportAdvice/reportRating`, Optionen Fotos/Anlagen) → Druck mit Ergebnis, Kurzfassung je Blatt (`sheetDigest`), Handlungsbedarf, Empfehlung, Fotodoku, optional alle Blätter als Anlage. **Berichtsansicht** in der App (`view-report`, `renderReportView`: gleiche HTML wie Druck, Papier per `transform: scale` auf Bildschirmbreite), `shareOrder` (Auftrag + Fotos als Datei teilen), Direktlink `#bericht=<Auftragsnr.>` / `#auftrag=…` (`openFromLink`) – für Zettel-Job |
 | 10-settings | Prüfer, Logo für den Kopf (`settings.logo`: null = SDT-Standard `img/sdt-logo.svg`, '' = ohne, sonst Data-URL), eigene Unterschrift, gemerkte Sollwerte, Sicherung/Import (mit Fotos), Beispielauftrag |
+
+## Papier-Styles
+
+Alle `.pr-*`-Regeln stehen außerhalb von `@media print` und gelten in `.paper-doc` (Druckbereich `#print-area` und Bildschirm `.paper-screen`). In `@media print` nur Seitenformat, Ausblenden der App, Seitenumbrüche.
 
 ## Datenmodell
 

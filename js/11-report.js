@@ -141,7 +141,7 @@ function openReportDialog() {
     <label class="check"><input type="checkbox" id="rep-photos" ${order.reportPhotos === false ? '' : 'checked'}> Fotodokumentation einfügen</label>
     <label class="check"><input type="checkbox" id="rep-attach" ${order.reportAttach ? 'checked' : ''}> Alle Mess- und Befundblätter als Anlage anhängen</label>
     <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal()">Schließen</button>
+      <button class="btn btn-ghost" onclick="viewReportFromDialog()">👁 Ansehen</button>
       <button class="btn btn-primary" onclick="printReportFromDialog()">🖨️ Bericht drucken</button>
     </div>`, { wide: true });
 }
@@ -158,6 +158,14 @@ function setReportRating(v) {
   touchOrder(order);
   // Dialog neu zeichnen, eingegebene Texte stehen schon im Auftrag
   openReportDialog();
+}
+
+function viewReportFromDialog() {
+  const order = getActiveOrder();
+  order.reportPhotos = document.getElementById('rep-photos').checked;
+  order.reportAttach = document.getElementById('rep-attach').checked;
+  touchOrder(order);
+  openReportView(order.id, order.reportAttach ? 'all' : 'report');
 }
 
 function printReportFromDialog() {
@@ -273,4 +281,146 @@ async function printReport(order, opts = {}) {
   setTimeout(() => { window.print(); document.title = title; }, 60);
 }
 
-Object.assign(window, { openReportDialog, setReportText, setReportRating, printReportFromDialog });
+// =====================================================================
+// Berichtsansicht in der App (digital lesen, z.B. im Büro)
+// Gleiche Darstellung wie der Druck – als Papierseiten auf dem Bildschirm.
+// =====================================================================
+let reportViewMode = 'report'; // 'report' = nur Bericht · 'all' = Bericht + alle Blätter
+let paperObserver = null;
+
+function openReportView(id, mode) {
+  commitFocus();
+  if (id) activeOrderId = id;
+  if (mode) reportViewMode = mode;
+  closeModal();
+  showView('report');
+}
+
+function reportViewOpts(order) {
+  return { photos: order.reportPhotos !== false, attach: reportViewMode === 'all' };
+}
+
+async function renderReportView() {
+  const order = getActiveOrder();
+  const body = document.getElementById('report-body');
+  if (!order) { showView('orders'); return; }
+  setTopbarTitle('Bericht ' + (order.orderNo || ''));
+  if (!order.sheets.length) {
+    body.innerHTML = `<div class="empty"><div class="empty-icon">${icon('doc')}</div><h3>Noch keine Blätter</h3><p>Für diesen Auftrag wurde noch nichts erfasst.</p></div>`;
+    return;
+  }
+  const states = order.sheets.map(sh => sheetState(order, sh));
+  const open = states.filter(x => x.cls !== 'done').length;
+  const last = [order.updated, ...order.sheets.map(sh => sh.updated)].filter(Boolean).sort().pop();
+  body.innerHTML = `
+    <div class="rv-bar">
+      <div class="chips">
+        <button class="chip ${reportViewMode === 'report' ? 'active' : ''}" onclick="setReportViewMode('report')">Bericht</button>
+        <button class="chip ${reportViewMode === 'all' ? 'active' : ''}" onclick="setReportViewMode('all')">Alle Blätter</button>
+      </div>
+      <button class="btn btn-soft" onclick="shareOrder()">📤 Senden</button>
+      <button class="btn btn-primary" onclick="printReportView()">🖨️ PDF</button>
+    </div>
+    <div class="rv-meta">${escapeHtml([order.customer, order.vessel].filter(Boolean).join(' · '))}${last ? ' · Stand ' + escapeHtml(new Date(last).toLocaleString('de-DE', { dateStyle: 'short', timeStyle: 'short' })) : ''} · ${order.sheets.length} Blätter${open ? ` · <b class="txt-obs">${open} noch offen</b>` : ''}</div>
+    <div class="paper-wrap"><div class="paper-doc paper-screen" id="paper"></div></div>`;
+  await Promise.all(collectPhotoIds(order).map(id => photoUrl(id)));
+  if (currentView !== 'report') return;
+  const opts = reportViewOpts(order);
+  let html = reportHtml(order, opts);
+  if (opts.attach) html += order.sheets.map((sh, i) => printSheetHtml(order, sh, i + 2, order.sheets.length + 1)).join('');
+  const paper = document.getElementById('paper');
+  paper.innerHTML = html;
+  // Seiten auf Bildschirmbreite verkleinern (A4 = 794 px)
+  if (paperObserver) paperObserver.disconnect();
+  if (window.ResizeObserver) { paperObserver = new ResizeObserver(fitPaper); paperObserver.observe(paper); }
+  paper.querySelectorAll('img').forEach(img => img.addEventListener('load', fitPaper));
+  fitPaper();
+}
+
+function fitPaper() {
+  const wrap = document.querySelector('#view-report .paper-wrap');
+  const paper = document.getElementById('paper');
+  if (!wrap || !paper) return;
+  const k = Math.min(1, wrap.clientWidth / 794);
+  paper.style.transform = `scale(${k})`;
+  wrap.style.height = Math.ceil(paper.offsetHeight * k) + 'px';
+}
+window.addEventListener('resize', () => { if (currentView === 'report') fitPaper(); });
+
+function setReportViewMode(m) {
+  reportViewMode = m;
+  renderReportView();
+}
+
+function printReportView() {
+  const order = getActiveOrder();
+  if (order) printReport(order, reportViewOpts(order));
+}
+
+function reportLink(order) {
+  return location.origin + location.pathname + '#bericht=' + encodeURIComponent(order.orderNo || order.id);
+}
+
+function openReportViewMenu() {
+  const order = getActiveOrder();
+  openModal(`
+    <h2 class="modal-title">Bericht ${escapeHtml(order.orderNo || '')}</h2>
+    <div class="menu-list">
+      <button onclick="closeModal();printReportView()">🖨️ Drucken / als PDF speichern</button>
+      <button onclick="closeModal();shareOrder()">📤 Auftrag ans Büro senden (Datei mit Fotos)</button>
+      <button onclick="copyReportLink()">🔗 Link zu diesem Bericht kopieren</button>
+      <button onclick="openReportDialog()">✏️ Fazit / Empfehlung bearbeiten</button>
+    </div>
+    <p class="muted small-text">Der Link öffnet den Bericht direkt – auf jedem Gerät, auf dem dieser Auftrag gespeichert ist (z.B. später aus Zettel-Job heraus).</p>
+    <div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Schließen</button></div>`);
+}
+
+async function copyReportLink() {
+  const order = getActiveOrder();
+  const link = reportLink(order);
+  try { await navigator.clipboard.writeText(link); showToast('Link kopiert'); }
+  catch (e) { prompt('Link zum Bericht:', link); }
+  closeModal();
+}
+
+// Auftrag als Datei (inkl. Fotos) teilen – Büro öffnet sie in Befunde mit „Auftrag laden“
+async function shareOrder() {
+  const order = getActiveOrder();
+  if (!order) return;
+  flushSave();
+  showToast('Datei wird vorbereitet …');
+  const files = await filesFor(collectPhotoIds(order));
+  const data = { type: 'befunde-order', version: 1, at: new Date().toISOString(), order, files };
+  const name = 'Befund-' + (order.orderNo || 'Auftrag').replace(/[\\/:]/g, '-') + '.json';
+  try {
+    const file = new File([JSON.stringify(data)], name, { type: 'application/json' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: 'Befund ' + (order.orderNo || ''), text: 'Befund ' + (order.orderNo || '') + ' – in der Befunde-App mit „Auftrag laden“ öffnen.' });
+      return;
+    }
+  } catch (e) { if (e && e.name === 'AbortError') return; }
+  downloadJson(data, name);
+  showToast('Datei gespeichert – per Mail / Teams ans Büro schicken');
+}
+
+// Direktlink: …/index.html#bericht=SR26/000249 (Bericht) oder #auftrag=… (Auftrag öffnen)
+function openFromLink() {
+  const src = (location.hash || '').replace(/^#/, '') || (location.search || '').replace(/^\?/, '');
+  const params = new URLSearchParams(src);
+  const key = params.has('bericht') ? 'bericht' : params.has('auftrag') ? 'auftrag' : null;
+  if (!key) return;
+  const raw = params.get(key) || '';
+  const no = formatOrderNo(raw).toLowerCase();
+  const order = appData.orders.filter(o => o.id === raw || (o.orderNo || '').toLowerCase() === no)
+    .sort((a, b) => (b.updated || '').localeCompare(a.updated || ''))[0];
+  if (!order) {
+    showToast('Auftrag ' + raw + ' ist auf diesem Gerät nicht gespeichert');
+    return;
+  }
+  if (key === 'bericht') openReportView(order.id, 'report'); else openOrder(order.id);
+}
+
+Object.assign(window, {
+  openReportDialog, setReportText, setReportRating, printReportFromDialog,
+  viewReportFromDialog, openReportView, setReportViewMode, printReportView, openReportViewMenu, copyReportLink, shareOrder
+});
