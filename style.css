@@ -972,3 +972,13 @@ details.collapse[open] > summary::after { content: '▴'; }
   .pr-block-head .pr-rating { font-size: 9.5pt; font-weight: 400; }
   .pr-photo-block .pr-photos { border: 1.2pt solid #000; border-top: .5pt solid #000; padding: 5pt; margin: 0; }
 }
+
+/* ---------- Zahlenleiste (± über der Tastatur) ---------- */
+.num-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 90; display: flex; align-items: center; gap: 10px; padding: 7px 10px calc(7px + var(--safe-b)); background: var(--surface); border-top: 1px solid var(--border); box-shadow: 0 -4px 16px rgba(17, 60, 100, .1); }
+.num-bar[hidden] { display: none; }
+.num-bar button { border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 800; font-size: 15px; }
+.nb-sign { background: var(--accent); color: #fff; min-width: 108px; }
+[data-theme="dark"] .nb-sign { color: #06243b; }
+.nb-next { background: var(--accent-soft); color: var(--accent-strong); margin-left: auto; }
+.nb-hint { font-size: 12px; color: var(--muted); }
+@media print { .num-bar { display: none !important; } }

@@ -167,6 +167,27 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     assert(/st-bad/.test(await page.getAttribute('[data-bind="data.lf.rows.A1.ob_L"]', 'class')), 'Gehäusebohrung außer Toleranz rot', errors);
     await shot('13-fit-bore');
 
+    // Minuswerte: ±-Leiste bei Zahlenfeldern (Soll und Ist)
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'piston_proj').id));
+    await page.click('[data-bind="data.pp.spec.min"]');
+    assert(await page.isVisible('#num-bar'), 'Zahlenleiste sichtbar bei Zahlenfeld', errors);
+    await page.keyboard.type('0,10');
+    await page.click('.nb-sign');
+    await page.click('[data-bind="data.pp.spec.max"]');
+    await page.keyboard.type('0,10');
+    await page.click('[data-bind="data.pp.rows.A1.p0"]');
+    await page.keyboard.type('0,15');
+    await page.click('.nb-sign');
+    await page.click('[data-bind="data.pp.rows.A2.p0"]');
+    await page.keyboard.type('−0,05');
+    await page.click('#view-sheet .sheet-head .oh-title');
+    const neg = await page.evaluate(() => { const d = getActiveSheet().data.pp; return [d.spec.min, d.rows.A1.p0, d.rows.A2.p0]; });
+    assert(neg[0] === '-0,10' && neg[1] === '-0,15' && neg[2] === '-0,05', 'Minuswerte gespeichert: ' + neg.join(' | '), errors);
+    assert(/st-bad/.test(await page.getAttribute('[data-bind="data.pp.rows.A1.p0"]', 'class')), '-0,15 < -0,10 → rot', errors);
+    assert(/st-ok/.test(await page.getAttribute('[data-bind="data.pp.rows.A2.p0"]', 'class')), '-0,05 in Toleranz → grün', errors);
+    await page.waitForSelector('#num-bar', { state: 'hidden', timeout: 2000 }).catch(() => errors.push('ASSERT: Zahlenleiste verschwindet außerhalb'));
+    await shot('14-minus');
+
     // Kolbenüberstand: Anzahl Messpunkte
     await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'piston_proj').id));
     const pp1 = await page.evaluate(() => document.querySelectorAll('[data-mkey="pp"] tbody tr:first-child .m-in:not(.txt)').length);
