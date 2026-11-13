@@ -88,6 +88,14 @@ function sheetDigest(order, sheet) {
     const swapped = groups.flatMap(g => g.rows.filter(r => r.snNew).map(r => `${g.label}${r.pos ? ' ' + r.pos : ''}`));
     if (n || swapped.length) lines.push(`${n} Seriennummern erfasst${swapped.length ? ` · getauscht: ${list(swapped)}` : ''}`);
   }
+  if (t.special === 'parts') {
+    const items = partItems(sheet).filter(it => it.part || it.reason);
+    const by = v => items.filter(it => it.status === v).map(it => [it.qty && it.qty !== '1' ? it.qty + '×' : '', it.part, it.pos ? '(' + it.pos + ')' : ''].filter(Boolean).join(' '));
+    if (by('order').length) lines.push('Zu bestellen: ' + list(by('order')));
+    if (by('open').length) lines.push('Noch zu klären: ' + list(by('open')));
+    if (by('ordered').length) lines.push('Bereits bestellt: ' + list(by('ordered')));
+    if (!items.length) lines.push('keine Bauteile erfasst');
+  }
   if (t.special === 'general') {
     const check = sheet.data.check || {};
     countLine('Checkliste', GENERAL_CHECK.map((c, i) => ({ p: c, r: (check[i] || {}).rating })).filter(x => x.r));
@@ -178,6 +186,7 @@ function reportHtml(order, opts) {
   if (opts.photos) sheets.forEach(sh => {
     const name = getType(sh.type).label;
     sh.findings.forEach(f => (f.photos || []).forEach(id => photos.push({ id, caption: `${name}: ${f.part || 'Befund'}${f.text ? ' – ' + f.text : ''}` })));
+    partItems(sh).forEach(it => (it.photos || []).forEach(id => photos.push({ id, caption: `${name}: ${it.part || 'Bauteil'}${it.pos ? ' (' + it.pos + ')' : ''} – ${partStatus(it.status).label}` })));
     if (sh.data.cyl) Object.keys(sh.data.cyl).forEach(p => (sh.data.cyl[p].photos || []).forEach(id => photos.push({ id, caption: `${name} Zyl. ${p}${(sh.data.cyl[p].tags || []).length ? ' – ' + sh.data.cyl[p].tags.slice(0, 2).join(', ') : ''}` })));
   });
 

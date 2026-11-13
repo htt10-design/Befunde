@@ -63,6 +63,7 @@ function printDocTitle(sheet) {
   let title;
   if (t.special === 'general') title = 'Befundblatt ' + (sheet.data.reason && sheet.data.reason !== 'Durchsicht' ? sheet.data.reason : 'Durchsicht');
   else if (t.special === 'serials') title = 'Seriennummern Bauteile';
+  else if (t.special === 'parts') title = 'Ersatzteilliste / Bestellung';
   else if (t.special === 'endoscopy') title = 'Befundblatt Endoskopie';
   else if (t.special === 'nozzles') title = 'Prüfprotokoll Einspritzdüsen';
   else if (!typeModes(t) || sheet.mode === 'mess') title = 'Messblatt ' + name;
@@ -228,6 +229,22 @@ function specialPrintHtml(order, sheet) {
         </table>
       </div>`;
   }
+  if (t.special === 'parts') {
+    const items = partItems(sheet).map((it, i) => ({ ...it, no: i + 1 })).filter(it => it.part || it.reason || (it.photos || []).length);
+    const groups = PART_STATUS.concat([partStatus('')]).map(st => ({ st, list: items.filter(it => (it.status || '') === st.v) })).filter(g => g.list.length);
+    const photos = [];
+    items.forEach(it => (it.photos || []).forEach((id, k, arr) => photos.push({ id, caption: `${it.no}${arr.length > 1 ? String.fromCharCode(97 + k) : ''} – ${it.part || 'Bauteil'}${it.pos ? ' (' + it.pos + ')' : ''}` })));
+    return `
+      <div class="pr-block">
+        <div class="pr-block-head"><span>Bauteile</span><span class="pr-block-sum">${escapeHtml(partsSummaryText(sheet) || '–')}</span></div>
+        <table class="pr-list pr-parts"><colgroup><col style="width:5%"><col style="width:20%"><col style="width:8%"><col style="width:7%"><col style="width:16%"><col><col style="width:13%"></colgroup>
+          <thead><tr><th>Nr.</th><th>Bauteil</th><th>Pos.</th><th>Menge</th><th>Teile-Nr. / Typ</th><th>Schaden / Grund</th><th>Status</th></tr></thead>
+          <tbody>${groups.length ? groups.map(g => `<tr class="grp"><td colspan="7">${escapeHtml(g.st.long)} (${g.list.length})</td></tr>` + g.list.map(it => `<tr><td>${it.no}${(it.photos || []).length ? ' 📷' : ''}</td><td><b>${escapeHtml(it.part || '')}</b></td><td>${escapeHtml(it.pos || '')}</td><td>${escapeHtml(it.qty || '')}</td><td class="mono">${escapeHtml(it.partNo || '')}</td><td class="pre">${escapeHtml([it.reason, it.status === 'open' && it.note ? 'Zu klären: ' + it.note : '', it.status === 'ordered' && it.orderRef ? 'Bestellt: ' + it.orderRef : ''].filter(Boolean).join('\n'))}</td><td class="${stCls(partStatus(it.status).rating)}">${escapeHtml(partStatus(it.status).label)}</td></tr>`).join('')).join('')
+          : Array.from({ length: 8 }, (_, i) => `<tr><td>${i + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`).join('')}</tbody>
+        </table>
+        ${printPhotosHtml(photos)}
+      </div>`;
+  }
   if (t.special === 'general') {
     const check = sheet.data.check || {};
     const rated = GENERAL_CHECK.map((c, i) => ({ c, d: check[i] || {} })).filter(x => x.d.rating);
@@ -313,6 +330,11 @@ function sheetIssues(order, sheet) {
   if (t.special === 'general') GENERAL_CHECK.forEach((c, i) => {
     const r = (sheet.data.check || {})[i] || {};
     if (r.rating === 'bad' || r.rating === 'obs') out.push({ st: r.rating, text: c + (r.note ? ': ' + r.note : '') });
+  });
+  if (t.special === 'parts') partItems(sheet).forEach(it => {
+    const st = partStatus(it.status);
+    if (!st.rating || !(it.part || it.reason)) return;
+    out.push({ st: st.rating, text: `${st.v === 'order' ? 'Bestellen' : 'Klären'}: ${[it.qty && it.qty !== '1' ? it.qty + '×' : '', it.part, it.pos ? '(' + it.pos + ')' : ''].filter(Boolean).join(' ')}${it.reason ? ' – ' + it.reason : ''}${st.v === 'open' && it.note ? ' – ' + it.note : ''}` });
   });
   sheet.findings.forEach(f => { if (f.rating === 'bad' || f.rating === 'obs') out.push({ st: f.rating, text: [f.part, f.text].filter(Boolean).join(': ') + (f.action ? ' → ' + f.action : '') }); });
   return out;

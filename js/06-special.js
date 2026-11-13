@@ -54,6 +54,7 @@ function specialInit(order, sheet, src) {
   }
   if (t.special === 'nozzles' && src && src.data.spec) sheet.data.spec = { ...src.data.spec };
   if (t.special === 'general') sheet.data.reason = sheet.data.reason || 'Durchsicht';
+  if (t.special === 'parts' && !Array.isArray(sheet.data.items)) sheet.data.items = [];
 }
 
 function specialEditorHtml(order, sheet, kind) {
@@ -61,6 +62,7 @@ function specialEditorHtml(order, sheet, kind) {
   if (kind === 'nozzles') return nozzleEditorHtml(order, sheet);
   if (kind === 'serials') return serialEditorHtml(order, sheet);
   if (kind === 'general') return generalEditorHtml(order, sheet);
+  if (kind === 'parts') return partsEditorHtml(order, sheet);
   return '';
 }
 
@@ -74,6 +76,7 @@ function specialAutoRating(order, sheet) {
   if (t.special === 'endoscopy') return positions(e, 'cyl').map(p => ((sheet.data.cyl || {})[p] || {}).rating).filter(Boolean);
   if (t.special === 'nozzles') return nozzleRows(order, sheet).map(r => r.st).filter(Boolean);
   if (t.special === 'general') return Object.values(sheet.data.check || {}).map(c => c && c.rating).filter(Boolean);
+  if (t.special === 'parts') return partItems(sheet).map(it => partStatus(it.status).rating).filter(Boolean);
   return [];
 }
 
@@ -84,6 +87,7 @@ function specialProgress(order, sheet) {
   if (t.special === 'nozzles') { const r = nozzleRows(order, sheet); return r.filter(x => x.tested).length + '/' + r.length + ' Düsen geprüft'; }
   if (t.special === 'serials') { const g = sheet.data.groups || []; return g.reduce((s, x) => s + x.rows.filter(r => r.sn || r.snNew).length, 0) + ' Seriennummern'; }
   if (t.special === 'general') { const n = Object.values(sheet.data.check || {}).filter(c => c && c.rating).length; return n ? n + ' Punkte geprüft' : ''; }
+  if (t.special === 'parts') return partsSummaryText(sheet);
   return '';
 }
 
@@ -456,5 +460,85 @@ function pistonSketch(n) {
   s += `<text x="${cx}" y="146" class="sk-t s mid">Draufsicht Kolben</text>`;
   return s + '</svg>';
 }
+
+// =====================================================================
+// Ersatzteile / Bestellliste
+// =====================================================================
+// Status je Bauteil – Reihenfolge = Reihenfolge im Druck
+const PART_STATUS = [
+  { v: 'order', label: 'Bestellen', long: 'Muss bestellt werden', rating: 'bad' },
+  { v: 'open', label: 'Klären', long: 'Noch offen / zu klären', rating: 'obs' },
+  { v: 'ordered', label: 'Bestellt', long: 'Bereits bestellt', rating: null },
+  { v: 'none', label: 'Nicht nötig', long: 'Nicht nötig / vorhanden', rating: null }
+];
+function partItems(sheet) { return Array.isArray(sheet.data.items) ? sheet.data.items : []; }
+function partStatus(v) { return PART_STATUS.find(x => x.v === v) || { v: '', label: 'ohne Status', long: 'Ohne Status', rating: null }; }
+
+function partsSummaryText(sheet) {
+  const items = partItems(sheet).filter(it => it.part || it.reason);
+  if (!items.length) return '';
+  const n = v => items.filter(it => it.status === v).length;
+  return [n('order') ? n('order') + '× bestellen' : '', n('open') ? n('open') + '× klären' : '', n('ordered') ? n('ordered') + '× bestellt' : ''].filter(Boolean).join(' · ') || items.length + ' Bauteile';
+}
+
+function partsEditorHtml(order, sheet) {
+  if (!Array.isArray(sheet.data.items)) sheet.data.items = [];
+  const items = sheet.data.items;
+  const count = v => items.filter(it => it.status === v).length;
+  return `
+    <div class="card special parts-card">
+      <div class="mc-head"><h3 class="card-title">Bauteile</h3><span class="mc-sum">${escapeHtml(partsSummaryText(sheet) || 'noch leer')}</span></div>
+      ${items.length ? `<div class="parts-kpis">${PART_STATUS.slice(0, 3).map(st => `<span class="pk pk-${st.v}"><b>${count(st.v)}</b>${escapeHtml(st.label)}</span>`).join('')}</div>`
+        : '<p class="muted small-text">Defekte oder fehlende Bauteile erfassen – mit Status, ob sie bestellt werden müssen, und Fotos.</p>'}
+      <div class="part-list">
+        ${items.map((it, i) => {
+          const p = 'data.items.' + i;
+          return `
+          <div class="part ps-${it.status || 'none-set'}">
+            <div class="f-head">
+              <span class="f-no">${i + 1}</span>
+              <input class="f-part" data-bind="${p}.part" value="${escapeHtml(it.part || '')}" placeholder="Bauteil (z.B. Kolbenring, Dichtung …)" list="dl-parts" autocomplete="off">
+              <button type="button" class="icon-btn small danger-hover" onclick="removePart(${i})" aria-label="Bauteil löschen"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+            </div>
+            <div class="part-grid">
+              <input data-bind="${p}.pos" value="${escapeHtml(it.pos || '')}" placeholder="Position (z.B. A3)" autocomplete="off" aria-label="Position">
+              <input data-bind="${p}.qty" value="${escapeHtml(it.qty || '')}" placeholder="Menge" inputmode="numeric" autocomplete="off" aria-label="Menge">
+              <input data-bind="${p}.partNo" value="${escapeHtml(it.partNo || '')}" placeholder="Teile-Nr. / Typ" autocomplete="off" aria-label="Teile-Nr. / Typ">
+            </div>
+            <textarea data-bind="${p}.reason" rows="2" placeholder="Schaden / Grund (z.B. gerissen, verschlissen, fehlt)">${escapeHtml(it.reason || '')}</textarea>
+            <div class="part-status">${PART_STATUS.map(st => `<button type="button" class="pst-${st.v} ${it.status === st.v ? 'on' : ''}" data-set="${p}.status" data-val="${st.v}">${escapeHtml(st.label)}</button>`).join('')}</div>
+            ${it.status === 'ordered' ? `<input data-bind="${p}.orderRef" value="${escapeHtml(it.orderRef || '')}" placeholder="Bestell-Nr. / Lieferant / Liefertermin" autocomplete="off">` : ''}
+            ${it.status === 'open' ? `<input data-bind="${p}.note" value="${escapeHtml(it.note || '')}" placeholder="Was ist noch zu klären? (z.B. Rücksprache Kunde)" autocomplete="off">` : ''}
+            ${photoStripHtml(p + '.photos', it.photos, 'Foto ' + (it.part || 'Bauteil'))}
+          </div>`;
+        }).join('')}
+      </div>
+      <datalist id="dl-parts">${PART_SUGGEST.map(x => `<option value="${escapeHtml(x)}">`).join('')}</datalist>
+      <button type="button" class="btn btn-primary" onclick="addPart()">＋ Bauteil hinzufügen</button>
+    </div>`;
+}
+
+function addPart() {
+  const sheet = getActiveSheet();
+  if (!Array.isArray(sheet.data.items)) sheet.data.items = [];
+  const items = sheet.data.items;
+  items.push({ id: uid(), part: '', pos: '', qty: '1', partNo: '', reason: '', status: 'order', photos: [] });
+  touchSheet(sheet);
+  renderSheet();
+  const all = document.querySelectorAll('.part .f-part');
+  if (all.length) all[all.length - 1].focus();
+}
+
+async function removePart(i) {
+  const sheet = getActiveSheet();
+  const it = sheet.data.items[i];
+  if ((it.part || it.reason || (it.photos || []).length) && !await confirmDialog('Bauteil „' + (it.part || 'ohne Namen') + '“ löschen?', 'Löschen', true)) return;
+  (it.photos || []).forEach(id => deleteFile(id).catch(() => {}));
+  sheet.data.items.splice(i, 1);
+  touchSheet(sheet);
+  renderSheet();
+}
+
+Object.assign(window, { addPart, removePart });
 
 Object.assign(window, { selectCyl, endoRestOk, serialAddRow, serialRemoveRow, serialAddGroup, serialRemoveGroup });

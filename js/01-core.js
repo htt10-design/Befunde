@@ -145,7 +145,15 @@ document.addEventListener('visibilitychange', () => { if (document.hidden) flush
 window.addEventListener('pagehide', flushSave);
 
 // ---------- Navigation ----------
+// Offenes Eingabefeld abschließen, solange es noch zum aktuellen Blatt/Auftrag gehört.
+// Sonst feuert der Browser sein „change“ erst nach dem Wechsel – und der Wert landet im falschen Blatt.
+function commitFocus() {
+  const el = document.activeElement;
+  if (el && el !== document.body && /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName)) el.blur();
+}
+
 function showView(name) {
+  commitFocus();
   currentView = name;
   document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.view === name));

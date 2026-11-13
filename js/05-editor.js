@@ -14,6 +14,7 @@ function getActiveSheet() {
 }
 
 function openSheet(id) {
+  commitFocus();
   activeSheetId = id;
   showView('sheet');
 }
@@ -32,7 +33,7 @@ function bindForm(container, getRoot, onChange) {
   const handler = ev => {
     const b = formBindings[container.id];
     const el = ev.target.closest('[data-bind]');
-    if (!el || !container.contains(el)) return;
+    if (!el || !container.contains(el) || !el.isConnected) return;
     const root = b.getRoot();
     if (!root) return;
     let value = el.type === 'checkbox' ? el.checked : el.value;
@@ -143,7 +144,7 @@ function renderSheet() {
   if (showMeasure(sheet)) html += t.measure.map(cfg => measureCardHtml(order, sheet, cfg, e)).join('');
   if (showInspect(sheet)) html += t.inspect.map(cfg => inspectCardHtml(order, sheet, cfg)).join('');
   if (t.special) html += specialEditorHtml(order, sheet, t.special);
-  html += findingsCardHtml(sheet, t);
+  if (t.special !== 'parts') html += findingsCardHtml(sheet, t);
   html += closingCardHtml(order, sheet);
   html += `
     <div class="editor-footer">
