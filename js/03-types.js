@@ -95,8 +95,8 @@ const SHEET_TYPES = [
     measure: [{
       kind: 'grid', key: 'lb', title: 'Innendurchmesser Laufbuchse', posKind: 'cyl', dec: 3, unit: 'mm',
       planes: PLANE_SETS[3], planeOptions: [2, 3, 4], planeDefault: 3, sketch: 'liner',
-      dirs: [{ k: 'L', label: 'A längs' }, { k: 'Q', label: 'B quer' }],
-      dirHint: 'A = längs (parallel zur Kurbelwelle), B = quer (90° dazu) – siehe Skizze'
+      dirs: [{ k: 'Q', label: 'A quer' }, { k: 'L', label: 'B längs' }],
+      dirHint: 'A = quer (90° zur Kurbelwelle), B = längs (parallel zur Kurbelwelle) – siehe Skizze'
     }],
     inspect: [{ key: 'lbi', title: 'Sichtbefund Laufbuchse', posKind: 'cyl', items: INSPECT_ITEMS.liner }]
   },
@@ -109,8 +109,8 @@ const SHEET_TYPES = [
         { k: 'o', label: 'Sitz oben (Bund)', bore: 'Gehäuse', shaft: 'Buchse' },
         { k: 'u', label: 'Sitz unten (Führung)', bore: 'Gehäuse', shaft: 'Buchse' }
       ],
-      dirs: [{ k: 'L', label: 'A längs' }, { k: 'Q', label: 'B quer' }], sketch: 'fit',
-      clrHint: 'A = längs (parallel zur Kurbelwelle), B = quer (90° dazu) – siehe Skizze. Spiel = Gehäuse − Buchse (negativ = Übermaß / Pressung)', sideOption: true
+      dirs: [{ k: 'Q', label: 'A quer' }, { k: 'L', label: 'B längs' }], sketch: 'fit',
+      clrHint: 'A = quer (90° zur Kurbelwelle), B = längs (parallel zur Kurbelwelle) – siehe Skizze. Spiel = Gehäuse − Buchse (negativ = Übermaß / Pressung)', sideOption: true
     }],
     inspect: [{ key: 'lfi', title: 'Sichtbefund Sitzflächen', posKind: 'cyl', items: INSPECT_ITEMS.liner_fit }]
   },

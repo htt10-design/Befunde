@@ -417,10 +417,10 @@ function abTopView(cx, cy) {
   let s = `<line x1="${cx - 75}" y1="${cy}" x2="${cx + 77}" y2="${cy}" class="sk-axis"/>`;
   s += `<text x="${cx - 77}" y="${cy - 6}" class="sk-t s">KS</text><text x="${cx + 77}" y="${cy - 6}" class="sk-t s end">KGS</text>`;
   s += `<circle cx="${cx}" cy="${cy}" r="${r}" class="sk-body"/><circle cx="${cx}" cy="${cy}" r="${r - 8}" class="sk-line" fill="none"/>`;
-  s += `<path d="M${cx - 34} ${cy} H${cx + 34} M${cx - 26} ${cy - 6} L${cx - 34} ${cy} L${cx - 26} ${cy + 6} M${cx + 26} ${cy - 6} L${cx + 34} ${cy} L${cx + 26} ${cy + 6}" class="sk-arrow a"/>`;
-  s += `<path d="M${cx} ${cy - 34} V${cy + 34} M${cx - 6} ${cy - 26} L${cx} ${cy - 34} L${cx + 6} ${cy - 26} M${cx - 6} ${cy + 26} L${cx} ${cy + 34} L${cx + 6} ${cy + 26}" class="sk-arrow b"/>`;
-  s += `<text x="${cx + 14}" y="${cy - 8}" class="sk-t b">A</text><text x="${cx + 9}" y="${cy + 24}" class="sk-t b">B</text>`;
-  s += `<text x="${cx}" y="${cy + 70}" class="sk-t s mid">A = längs (KS–KGS) · B = quer</text>`;
+  s += `<path d="M${cx - 34} ${cy} H${cx + 34} M${cx - 26} ${cy - 6} L${cx - 34} ${cy} L${cx - 26} ${cy + 6} M${cx + 26} ${cy - 6} L${cx + 34} ${cy} L${cx + 26} ${cy + 6}" class="sk-arrow b"/>`;
+  s += `<path d="M${cx} ${cy - 34} V${cy + 34} M${cx - 6} ${cy - 26} L${cx} ${cy - 34} L${cx + 6} ${cy - 26} M${cx - 6} ${cy + 26} L${cx} ${cy + 34} L${cx + 6} ${cy + 26}" class="sk-arrow a"/>`;
+  s += `<text x="${cx + 8}" y="${cy - 22}" class="sk-t b">A</text><text x="${cx + 22}" y="${cy - 7}" class="sk-t b">B</text>`;
+  s += `<text x="${cx}" y="${cy + 70}" class="sk-t s mid">A = quer · B = längs (KS–KGS)</text>`;
   return s;
 }
 
