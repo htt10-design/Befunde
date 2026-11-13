@@ -255,9 +255,15 @@ function renderOrder() {
     <div class="sheet-list">
       ${groups || `<div class="empty small"><p>Noch keine Blätter. Wähle unten, was du erfassen möchtest.</p></div>`}
     </div>
-    <button class="btn btn-primary block add-sheet-btn" onclick="openAddSheet()">
+    <button class="btn btn-soft block add-sheet-btn" onclick="openAddSheet()">
       <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Blatt hinzufügen
     </button>
+    ${order.sheets.length ? `
+    <button class="report-card" onclick="openReportDialog()">
+      <span class="rc-icon">${icon('doc')}</span>
+      <span class="rc-text"><b>Befundbericht erstellen</b><small>Alle Blätter zusammengefasst: Ergebnis, Handlungsbedarf, Empfehlung, Fotos – drucken oder als PDF</small></span>
+      <svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+    </button>` : ''}
 
     <details class="card collapse" ${order.sheets.length ? '' : 'open'}>
       <summary class="card-title">Auftragsdaten</summary>
@@ -493,7 +499,8 @@ function openOrderMenu() {
   openModal(`
     <h2 class="modal-title">${escapeHtml(order.orderNo || 'Auftrag')}</h2>
     <div class="menu-list">
-      <button onclick="closeModal();openPrintChooser()">🖨️ Drucken / als PDF speichern</button>
+      <button onclick="closeModal();openReportDialog()">📄 Befundbericht (Zusammenfassung)</button>
+      <button onclick="closeModal();openPrintChooser()">🖨️ Einzelne Blätter drucken / PDF</button>
       <button onclick="closeModal();exportOrder()">💾 Auftrag als Datei speichern (mit Fotos)</button>
       <button onclick="closeModal();duplicateOrder()">📄 Als Vorlage kopieren (neuer Auftrag, leere Messwerte)</button>
       <button class="danger" onclick="deleteOrder()">🗑️ Auftrag löschen</button>

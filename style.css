@@ -947,3 +947,28 @@ details.collapse[open] > summary::after { content: '▴'; }
   .pr-sketch .sk-t { fill: #000; } .pr-sketch .sk-t.pt { fill: #fff; }
 }
 .side-hint { margin: 0; flex: 1; min-width: 180px; }
+
+/* ---------- Befundbericht ---------- */
+.report-card { width: 100%; display: flex; align-items: center; gap: 14px; text-align: left; border: 0; border-radius: var(--radius); padding: 16px; margin-bottom: 14px; background: linear-gradient(135deg, #3aa8e6, #1d8fd1); color: #fff; box-shadow: 0 8px 22px rgba(29, 143, 209, .3); }
+[data-theme="dark"] .report-card { background: linear-gradient(135deg, #1b4c74, #16395a); box-shadow: var(--shadow); }
+.report-card .rc-icon { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 14px; background: rgba(255, 255, 255, .18); display: grid; place-items: center; }
+.report-card .rc-text { flex: 1; display: flex; flex-direction: column; }
+.report-card b { font-size: 16.5px; }
+.report-card small { font-size: 12.5px; opacity: .9; }
+.rep-list { display: flex; flex-direction: column; gap: 6px; max-height: 36vh; overflow-y: auto; }
+.rep-item { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 1px solid var(--border); background: var(--surface-2); border-radius: 12px; padding: 9px 12px; }
+.rep-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rep-name small { color: var(--muted); font-size: 12px; }
+.rep-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 10px; background: var(--t-ok); }
+.rep-item.st-open .rep-dot { background: #e0a512; }
+.rep-item.st-empty .rep-dot { background: var(--border); border: 1.5px solid var(--muted); }
+@media print {
+  .pr-text { border: 1.2pt solid #000; border-top: .5pt solid #000; padding: 4pt 6pt; font-size: 9.5pt; min-height: 22pt; margin: 0; }
+  .pr-block > .pr-text { border-top: .5pt solid #000; }
+  p.pr-text { border: 0; padding: 0; margin: 4pt 0; }
+  .pr-ul { margin: 0; padding-left: 12pt; }
+  .pr-ul li { margin: 1pt 0; }
+  #print-area .pr-report .pr-list td small { font-size: 7.5pt; }
+  .pr-block-head .pr-rating { font-size: 9.5pt; font-weight: 400; }
+  .pr-photo-block .pr-photos { border: 1.2pt solid #000; border-top: .5pt solid #000; padding: 5pt; margin: 0; }
+}

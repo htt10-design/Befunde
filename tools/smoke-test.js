@@ -195,6 +195,22 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
       await page.emulateMedia({ media: 'screen' });
     }
 
+    // Befundbericht (Zusammenfassung) mit Anlagen
+    await page.click('.report-card');
+    await page.fill('.modal-card textarea >> nth=0', 'Motor insgesamt in gutem Zustand.');
+    await page.check('#rep-attach');
+    await page.evaluate(() => { window.__printed = false; });
+    await page.click('.modal-actions .btn-primary');
+    await page.waitForFunction(() => window.__printed, null, { timeout: 5000 }).catch(() => errors.push('Bericht: Druck nicht ausgelöst'));
+    const rep = await page.evaluate(() => [document.querySelectorAll('#print-area .pr-page').length, document.querySelector('.pr-report').textContent]);
+    assert(rep[0] === types.length + 1, `Bericht + ${types.length} Anlagen (${rep[0]})`, errors);
+    assert(/außer Toleranz: Zyl\. A2/.test(rep[1]) && /gutem Zustand/.test(rep[1]) && /Handlungsbedarf/.test(rep[1]), 'Bericht enthält Ergebnis, Fazit, Handlungsbedarf', errors);
+    if (label === 'desktop') {
+      await page.emulateMedia({ media: 'print' });
+      await page.pdf({ path: path.join(OUT, 'befundbericht.pdf'), format: 'A4', printBackground: true });
+      await page.emulateMedia({ media: 'screen' });
+    }
+
     // Einstellungen, Beispielauftrag, Dunkelmodus
     await page.click('#btn-back');
     await page.click('.nav-item[data-view="settings"]');
