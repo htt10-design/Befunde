@@ -103,8 +103,8 @@ const SHEET_TYPES = [
         { k: 'o', label: 'Sitz oben (Bund)', bore: 'Gehäuse', shaft: 'Buchse' },
         { k: 'u', label: 'Sitz unten (Führung)', bore: 'Gehäuse', shaft: 'Buchse' }
       ],
-      dirs: [{ k: 'L', label: 'längs' }, { k: 'Q', label: 'quer' }],
-      clrHint: 'Spiel = Gehäuse − Buchse (negativ = Übermaß / Pressung)', sideOption: true
+      dirs: [{ k: 'L', label: 'A längs' }, { k: 'Q', label: 'B quer' }], sketch: 'fit',
+      clrHint: 'A = längs (parallel zur Kurbelwelle), B = quer (90° dazu) – siehe Skizze. Spiel = Gehäuse − Buchse (negativ = Übermaß / Pressung)', sideOption: true
     }],
     inspect: [{ key: 'lfi', title: 'Sichtbefund Sitzflächen', posKind: 'cyl', items: INSPECT_ITEMS.liner_fit }]
   },

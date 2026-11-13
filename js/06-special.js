@@ -387,6 +387,7 @@ const ROMAN = ['I', 'II', 'III', 'IV', 'V'];
 function sketchSvg(cfg) {
   if (cfg.sketch === 'liner') return linerSketch(cfg.planes.length);
   if (cfg.sketch === 'piston') return pistonSketch(cfg.points.length);
+  if (cfg.sketch === 'fit') return fitSketch(cfg.boreOnly);
   return '';
 }
 
@@ -402,15 +403,40 @@ function linerSketch(n) {
     s += `<line x1="34" y1="${y}" x2="116" y2="${y}" class="sk-plane"/><text x="124" y="${y + 4}" class="sk-t b">${ROMAN[i]}</text>`;
   });
   s += `<text x="75" y="10" class="sk-t s mid">oben (OT)</text><text x="75" y="149" class="sk-t s mid">unten</text>`;
-  // Draufsicht
-  const cx = 245, cy = 76, r = 50;
-  s += `<line x1="170" y1="${cy}" x2="322" y2="${cy}" class="sk-axis"/>`;
-  s += `<text x="168" y="${cy - 6}" class="sk-t s">KS</text><text x="322" y="${cy - 6}" class="sk-t s end">KW-Achse</text>`;
+  s += abTopView(245, 76);
+  return s + '</svg>';
+}
+
+// Draufsicht Bohrung mit Messrichtungen A (längs, parallel KW-Achse) und B (quer)
+function abTopView(cx, cy) {
+  const r = 50;
+  let s = `<line x1="${cx - 75}" y1="${cy}" x2="${cx + 77}" y2="${cy}" class="sk-axis"/>`;
+  s += `<text x="${cx - 77}" y="${cy - 6}" class="sk-t s">KS</text><text x="${cx + 77}" y="${cy - 6}" class="sk-t s end">KGS</text>`;
   s += `<circle cx="${cx}" cy="${cy}" r="${r}" class="sk-body"/><circle cx="${cx}" cy="${cy}" r="${r - 8}" class="sk-line" fill="none"/>`;
   s += `<path d="M${cx - 34} ${cy} H${cx + 34} M${cx - 26} ${cy - 6} L${cx - 34} ${cy} L${cx - 26} ${cy + 6} M${cx + 26} ${cy - 6} L${cx + 34} ${cy} L${cx + 26} ${cy + 6}" class="sk-arrow a"/>`;
   s += `<path d="M${cx} ${cy - 34} V${cy + 34} M${cx - 6} ${cy - 26} L${cx} ${cy - 34} L${cx + 6} ${cy - 26} M${cx - 6} ${cy + 26} L${cx} ${cy + 34} L${cx + 6} ${cy + 26}" class="sk-arrow b"/>`;
   s += `<text x="${cx + 14}" y="${cy - 8}" class="sk-t b">A</text><text x="${cx + 9}" y="${cy + 24}" class="sk-t b">B</text>`;
-  s += `<text x="${cx}" y="146" class="sk-t s mid">A = längs · B = quer</text>`;
+  s += `<text x="${cx}" y="${cy + 70}" class="sk-t s mid">A = längs (KS–KGS) · B = quer</text>`;
+  return s;
+}
+
+// Laufbuchse einpassen: Schnitt Kurbelgehäuse mit Sitz oben (Bund) und unten (Führung),
+// rechts Draufsicht A/B. Nur Gehäusebohrung → Buchse nur gestrichelt angedeutet.
+function fitSketch(boreOnly) {
+  let s = `<svg class="sk-svg" viewBox="0 0 372 160" xmlns="http://www.w3.org/2000/svg">`;
+  // Gehäuse links/rechts: oben Sitz für den Bund, Mitte Kühlraum, unten Führung
+  const half = 'M10 22 H30 V44 H40 V54 H22 V108 H44 V150 H10 Z';
+  s += `<path d="${half}" class="sk-house"/><path d="${half}" class="sk-house" transform="translate(160 0) scale(-1 1)"/>`;
+  // Laufbuchse mit Bund
+  s += `<path d="M30 14 H130 V44 H116 V150 H44 V44 H30 Z" class="${boreOnly ? 'sk-ghost' : 'sk-body'}"/>`;
+  s += `<path d="M52 44 V150 M108 44 V150" class="${boreOnly ? 'sk-ghost-line' : 'sk-line'}"/>`;
+  s += `<text x="80" y="102" class="sk-t s mid">${boreOnly ? 'Buchse (neu)' : 'Buchse'}</text>`;
+  s += `<text x="33" y="81" class="sk-t s mid" transform="rotate(-90 33 81)">Kühlraum</text>`;
+  // Messebenen
+  s += `<line x1="4" y1="33" x2="156" y2="33" class="sk-plane"/><text x="160" y="31" class="sk-t s">oben</text><text x="160" y="41" class="sk-t s">(Bund)</text>`;
+  s += `<line x1="4" y1="130" x2="156" y2="130" class="sk-plane"/><text x="160" y="128" class="sk-t s">unten</text><text x="160" y="138" class="sk-t s">(Führung)</text>`;
+  s += `<text x="80" y="9" class="sk-t s mid">Schnitt Kurbelgehäuse</text>`;
+  s += abTopView(284, 76);
   return s + '</svg>';
 }
 
