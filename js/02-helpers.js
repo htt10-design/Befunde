@@ -49,7 +49,8 @@ function formatDate(iso) {
 // "165,023" / "165.023" / " -0,05 " → Number, sonst null
 function parseNum(text) {
   if (text == null) return null;
-  const t = String(text).trim().replace(/\s/g, '').replace(',', '.');
+  // Minus auch als „−“ / „–“ (manche Tastaturen) akzeptieren
+  const t = String(text).trim().replace(/\s/g, '').replace(/[−–]/g, '-').replace(',', '.');
   if (!t || !/^[-+]?\d*\.?\d+$/.test(t) && !/^[-+]?\d+\.?$/.test(t)) return null;
   const n = parseFloat(t);
   return isNaN(n) ? null : n;
@@ -62,7 +63,7 @@ function formatNum(n, dec = 3) {
 // Schnelleingabe: bei Durchmessern (Nennmaß ≥ 10) nur µm eintippen.
 // "23" → Nennmaß + 0,023 · "-8" → Nennmaß − 0,008. Mit Komma = absoluter Wert.
 function expandQuick(text, nominal, dec = 3) {
-  const t = String(text || '').trim();
+  const t = String(text || '').trim().replace(/[−–]/g, '-');
   if (!appData.settings.quickInput) return null;
   if (nominal == null || Math.abs(nominal) < 10) return null;
   if (!/^[-+]?\d{1,3}$/.test(t)) return null;

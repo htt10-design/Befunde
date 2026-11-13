@@ -112,6 +112,13 @@
   <input type="file" id="photo-input" accept="image/*" multiple hidden>
   <input type="file" id="import-input" accept=".json,application/json" hidden>
 
+  <!-- Zahlenleiste über der Tastatur (Minus fehlt auf vielen Zahlentastaturen) -->
+  <div class="num-bar" id="num-bar" hidden>
+    <button type="button" class="nb-sign" onclick="toggleSign()">± Minus</button>
+    <span class="nb-hint">Vorzeichen umschalten</span>
+    <button type="button" class="nb-next" onclick="numBarNext()">Weiter ▶</button>
+  </div>
+
   <div class="toast" id="toast"></div>
 
   <!-- Druckansicht (nur beim Drucken sichtbar) -->

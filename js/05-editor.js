@@ -44,7 +44,7 @@ function bindForm(container, getRoot, onChange) {
       const v = quickValue(root, el);
       if (v != null) { el.value = v; value = v; }
     }
-    if (el.dataset.num && ev.type === 'change') value = String(value).replace('.', ',');
+    if (el.dataset.num && ev.type === 'change') value = String(value).replace('.', ',').replace(/[−–]/g, '-');
     if (el.dataset.num && ev.type === 'change' && el.value !== value) el.value = value;
     setPath(root, el.dataset.bind, value);
     b.onChange(root, el, ev);
@@ -626,7 +626,62 @@ async function deleteSheet() {
   showToast('Blatt gelöscht');
 }
 
+// ---------- Zahlenleiste: ± (Minus) über der Tastatur ----------
+// Die Zahlentastatur (inputmode="decimal") hat auf vielen Handys keine Minus-Taste.
+// Solange ein Zahlenfeld aktiv ist, erscheint unten eine Leiste mit „±“ und „Weiter“.
+let numBarField = null;
+function isNumField(el) {
+  return el && el.tagName === 'INPUT' && el.getAttribute('inputmode') === 'decimal';
+}
+function placeNumBar() {
+  const bar = document.getElementById('num-bar');
+  const vv = window.visualViewport;
+  if (!bar || !vv) return;
+  // Unterkante des sichtbaren Bereichs (über der Bildschirmtastatur)
+  bar.style.bottom = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height)) + 'px';
+}
+function toggleSign() {
+  const el = numBarField;
+  if (!el) return;
+  const v = el.value.trim().replace(/[−–]/g, '-');
+  el.value = v.startsWith('-') ? v.slice(1) : '-' + v.replace(/^\+/, '');
+  el.dataset.signed = '1';
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.focus();
+}
+function numBarNext() {
+  const el = numBarField;
+  if (!el) return;
+  const all = [...document.querySelectorAll('.view.active input[inputmode="decimal"]')];
+  const next = all[all.indexOf(el) + 1];
+  if (next) { next.focus(); next.select && next.select(); } else el.blur();
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const bar = document.getElementById('num-bar');
+  // Tippen auf die Leiste soll das Feld nicht verlassen (Tastatur bleibt offen)
+  bar.addEventListener('pointerdown', e => e.preventDefault());
+  bar.addEventListener('mousedown', e => e.preventDefault());
+  document.addEventListener('focusin', e => {
+    if (!isNumField(e.target)) return;
+    numBarField = e.target;
+    bar.hidden = false;
+    placeNumBar();
+  });
+  document.addEventListener('focusout', e => {
+    if (!isNumField(e.target)) return;
+    const el = e.target;
+    // Vorzeichen per Leiste geändert → wie eine normale Eingabe abschließen (Schnelleingabe, Komma …)
+    if (el.dataset.signed) { delete el.dataset.signed; el.dispatchEvent(new Event('change', { bubbles: true })); }
+    setTimeout(() => { if (!isNumField(document.activeElement)) { bar.hidden = true; numBarField = null; } }, 50);
+  });
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', placeNumBar);
+    window.visualViewport.addEventListener('scroll', placeNumBar);
+  }
+});
+
 Object.assign(window, {
+  toggleSign, numBarNext,
   openSheet, getActiveSheet, saveSpecTemplate, toggleInspect, inspectRestOk, addFinding, removeFinding,
   openSheetMenu, duplicateSheet, moveSheetEngine, setSheetEngine, deleteSheet
 });
