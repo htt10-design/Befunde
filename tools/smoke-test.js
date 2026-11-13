@@ -153,6 +153,20 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     assert(pl2 === 4, '2 Ebenen × A/B = 4 Felder: ' + pl2, errors);
     assert(await page.locator('[data-mkey="lb"] .sketch svg').count() === 1, 'Skizze Laufbuchse sichtbar', errors);
     await page.click('[data-set="data.lb.planes"][data-val="3"]');
+    // Laufbuchse einpassen: nur Gehäusebohrung
+    await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'liner_fit').id));
+    const fitBoth = await page.evaluate(() => document.querySelectorAll('[data-mkey="lf"] tbody tr:first-child .m-in').length);
+    assert(fitBoth === 8, 'Einpassen Gehäuse + Buchse: 8 Felder: ' + fitBoth, errors);
+    await page.click('[data-set="data.lf.sides"][data-val="bore"]');
+    const fitBore = await page.evaluate(() => [document.querySelectorAll('[data-mkey="lf"] tbody tr:first-child .m-in').length, document.querySelectorAll('[data-d^="lf|"]').length]);
+    assert(fitBore[0] === 4 && fitBore[1] === 0, 'Nur Gehäusebohrung: 4 Felder, kein Spiel: ' + fitBore, errors);
+    await page.fill('[data-bind="data.lf.spec.o.boreMin"]', '200,000');
+    await page.fill('[data-bind="data.lf.spec.o.boreMax"]', '200,030');
+    await page.fill('[data-bind="data.lf.rows.A1.ob_L"]', '200,050');
+    await page.locator('[data-bind="data.lf.rows.A1.ob_L"]').dispatchEvent('change');
+    assert(/st-bad/.test(await page.getAttribute('[data-bind="data.lf.rows.A1.ob_L"]', 'class')), 'Gehäusebohrung außer Toleranz rot', errors);
+    await shot('13-fit-bore');
+
     // Kolbenüberstand: Anzahl Messpunkte
     await page.evaluate(() => openSheet(getActiveOrder().sheets.find(s => s.type === 'piston_proj').id));
     const pp1 = await page.evaluate(() => document.querySelectorAll('[data-mkey="pp"] tbody tr:first-child .m-in:not(.txt)').length);
@@ -178,6 +192,22 @@ const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR
     if (label === 'desktop') {
       await page.emulateMedia({ media: 'print' });
       await page.pdf({ path: path.join(OUT, 'druck-alle-blaetter.pdf'), format: 'A4', printBackground: true });
+      await page.emulateMedia({ media: 'screen' });
+    }
+
+    // Befundbericht (Zusammenfassung) mit Anlagen
+    await page.click('.report-card');
+    await page.fill('.modal-card textarea >> nth=0', 'Motor insgesamt in gutem Zustand.');
+    await page.check('#rep-attach');
+    await page.evaluate(() => { window.__printed = false; });
+    await page.click('.modal-actions .btn-primary');
+    await page.waitForFunction(() => window.__printed, null, { timeout: 5000 }).catch(() => errors.push('Bericht: Druck nicht ausgelöst'));
+    const rep = await page.evaluate(() => [document.querySelectorAll('#print-area .pr-page').length, document.querySelector('.pr-report').textContent]);
+    assert(rep[0] === types.length + 1, `Bericht + ${types.length} Anlagen (${rep[0]})`, errors);
+    assert(/außer Toleranz: Zyl\. A2/.test(rep[1]) && /gutem Zustand/.test(rep[1]) && /Handlungsbedarf/.test(rep[1]), 'Bericht enthält Ergebnis, Fazit, Handlungsbedarf', errors);
+    if (label === 'desktop') {
+      await page.emulateMedia({ media: 'print' });
+      await page.pdf({ path: path.join(OUT, 'befundbericht.pdf'), format: 'A4', printBackground: true });
       await page.emulateMedia({ media: 'screen' });
     }
 

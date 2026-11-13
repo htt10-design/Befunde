@@ -207,10 +207,11 @@ function measureCardHtml(order, sheet, cfg, engine) {
       ${specInput('Nennmaß', sp + '.nom', s.nom, { placeholder: 'z.B. 90,000' })}
       ${specInput(pr.bore + ' min', sp + '.boreMin', s.boreMin, { nom: sp + '.nom', dec })}
       ${specInput(pr.bore + ' max', sp + '.boreMax', s.boreMax, { nom: sp + '.nom', dec })}
+      ${cfg.boreOnly ? '' : `
       ${specInput(pr.shaft + ' min', sp + '.shaftMin', s.shaftMin, { nom: sp + '.nom', dec })}
       ${specInput(pr.shaft + ' max', sp + '.shaftMax', s.shaftMax, { nom: sp + '.nom', dec })}
       ${specInput('Spiel min', sp + '.clrMin', s.clrMin, { placeholder: 'z.B. 0,060' })}
-      ${specInput('Spiel max', sp + '.clrMax', s.clrMax, { placeholder: 'z.B. 0,120' })}`;
+      ${specInput('Spiel max', sp + '.clrMax', s.clrMax, { placeholder: 'z.B. 0,120' })}`}`;
     }).join('');
   }
   const hasSpec = specFilled(spec);
@@ -229,6 +230,16 @@ function measureCardHtml(order, sheet, cfg, engine) {
         <input class="count-in" type="number" min="1" max="30" data-bind="${p}.count" data-rerender="1" value="${escapeHtml(d.count || pos.length)}">
         <span class="muted small-text">Lager 1 = KS</span>
       </div>` : ''}
+      ${cfg.sideOption ? `
+      <div class="cfg-row">
+        <div class="field"><span>Was wird gemessen?</span>
+          <div class="seg wide">
+            <button type="button" class="${!cfg.boreOnly ? 'on' : ''}" data-set="${p}.sides" data-val="both" data-keep="1">Gehäuse + Buchse</button>
+            <button type="button" class="${cfg.boreOnly ? 'on' : ''}" data-set="${p}.sides" data-val="bore" data-keep="1">Nur Gehäusebohrung</button>
+          </div>
+        </div>
+        ${cfg.boreOnly ? '<p class="muted small-text side-hint">Buchsenmaß und Spiel entfallen – z.B. wenn neue Buchsen eingebaut werden.</p>' : ''}
+      </div>` : ''}
       ${cfg.planeOptions || cfg.pointOptions ? `
       <div class="cfg-row">
         <div class="field"><span>${cfg.planeOptions ? 'Anzahl Messebenen' : 'Anzahl Messpunkte'}</span>
@@ -244,7 +255,7 @@ function measureCardHtml(order, sheet, cfg, engine) {
         </div>
       </details>
       ${quickHint}
-      ${cfg.dirHint || cfg.pointHint || cfg.clrHint ? `<p class="hint">ℹ️ ${escapeHtml(cfg.dirHint || cfg.pointHint || cfg.clrHint)}</p>` : ''}
+      ${cfg.dirHint || cfg.pointHint || (cfg.clrHint && !cfg.boreOnly) ? `<p class="hint">ℹ️ ${escapeHtml(cfg.dirHint || cfg.pointHint || cfg.clrHint)}</p>` : ''}
       <div class="mtable-wrap">${measureTableHtml(cfg, d, pos, p)}</div>
       <div class="legend"><span class="lg lg-ok">i.O.</span><span class="lg lg-obs">Verschleißgrenze / beobachten</span><span class="lg lg-bad">außer Toleranz</span></div>
     </div>`;
@@ -310,16 +321,17 @@ function measureTableHtml(cfg, d, pos, p) {
     return `<table class="mtable"><thead><tr><th class="pos">Zyl.</th>${cfg.points.map(pt => `<th>${escapeHtml(pt)}</th>`).join('')}${one ? '' : '<th>Mittel</th><th>Streuung</th>'}${cfg.neighbor ? '<th>Δ Nachbar</th>' : ''}${cfg.extraCol ? `<th>${escapeHtml(cfg.extraCol.label)}</th>` : ''}${cfg.note ? '<th>Bemerkung</th>' : ''}</tr></thead><tbody>${body}</tbody></table>`;
   }
   // clearance
-  const head1 = cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * 2 + 1}" class="grp">${escapeHtml(pr.label)}</th>`).join('');
+  const sides = cfg.boreOnly ? ['b'] : ['b', 's'];
+  const head1 = cfg.pairs.map(pr => `<th colspan="${cfg.dirs.length * sides.length + (cfg.boreOnly ? 0 : 1)}" class="grp">${escapeHtml(pr.label)}</th>`).join('');
   const head2 = cfg.pairs.map(pr => cfg.dirs.map(dr => `<th>${escapeHtml(pr.bore)}<br><small>${escapeHtml(dr.label)}</small></th>`).join('') +
-    cfg.dirs.map(dr => `<th>${escapeHtml(pr.shaft)}<br><small>${escapeHtml(dr.label)}</small></th>`).join('') + '<th>Spiel</th>').join('');
+    (cfg.boreOnly ? '' : cfg.dirs.map(dr => `<th>${escapeHtml(pr.shaft)}<br><small>${escapeHtml(dr.label)}</small></th>`).join('') + '<th>Spiel</th>')).join('');
   const body = pos.map(ps => {
     const r = rows[ps] || {};
     const { cls, th } = posTh(ps);
     return `<tr class="${cls}">${th}${cfg.pairs.map(pr => {
       const nom = `${p}.spec.${pr.k}.nom`;
-      return ['b', 's'].map(side => cfg.dirs.map(dr => `<td>${mIn(`${p}.rows.${ps}.${pr.k}${side}_${dr.k}`, r[pr.k + side + '_' + dr.k], nom, cfg.dec || 3, ps + ' ' + pr.label)}</td>`).join('')).join('') +
-        `<td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|clr_${pr.k}"></td>`;
+      return sides.map(side => cfg.dirs.map(dr => `<td>${mIn(`${p}.rows.${ps}.${pr.k}${side}_${dr.k}`, r[pr.k + side + '_' + dr.k], nom, cfg.dec || 3, ps + ' ' + pr.label)}</td>`).join('')).join('') +
+        (cfg.boreOnly ? '' : `<td class="m-d" data-d="${cfg.key}|${escapeHtml(ps)}|clr_${pr.k}"></td>`);
     }).join('')}</tr>`;
   }).join('');
   return `<table class="mtable"><thead><tr><th rowspan="2" class="pos">${cfg.posKind === 'cyl' ? 'Zyl.' : 'Lager'}</th>${head1}</tr><tr>${head2}</tr></thead><tbody>${body}</tbody></table>`;

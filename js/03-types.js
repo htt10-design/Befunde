@@ -104,7 +104,7 @@ const SHEET_TYPES = [
         { k: 'u', label: 'Sitz unten (Führung)', bore: 'Gehäuse', shaft: 'Buchse' }
       ],
       dirs: [{ k: 'L', label: 'längs' }, { k: 'Q', label: 'quer' }],
-      clrHint: 'Spiel = Gehäuse − Buchse (negativ = Übermaß / Pressung)'
+      clrHint: 'Spiel = Gehäuse − Buchse (negativ = Übermaß / Pressung)', sideOption: true
     }],
     inspect: [{ key: 'lfi', title: 'Sichtbefund Sitzflächen', posKind: 'cyl', items: INSPECT_ITEMS.liner_fit }]
   },
@@ -338,7 +338,7 @@ function computeClearance(cfg, data, posList) {
         const n = parseNum(r[pr.k + side + '_' + d.k]);
         return { n, st: evalRange(n, side === 'b' ? s.boreMin : s.shaftMin, side === 'b' ? s.boreMax : s.shaftMax) };
       });
-      const bore = get('b'), shaft = get('s');
+      const bore = get('b'), shaft = cfg.boreOnly ? [] : get('s');
       const avg = list => { const ns = list.map(x => x.n).filter(n => n != null); return ns.length ? ns.reduce((a, b) => a + b, 0) / ns.length : null; };
       const bm = avg(bore), sm = avg(shaft);
       const clr = bm != null && sm != null ? bm - sm : null;
@@ -360,12 +360,14 @@ function effCfg(cfg, data) {
   data = data || {};
   if (cfg.planeOptions) {
     const n = cfg.planeOptions.includes(parseInt(data.planes, 10)) ? parseInt(data.planes, 10) : cfg.planeDefault;
-    return { ...cfg, planes: PLANE_SETS[n], nPlanes: n };
+    cfg = { ...cfg, planes: PLANE_SETS[n], nPlanes: n };
   }
   if (cfg.pointOptions) {
     const n = cfg.pointOptions.includes(parseInt(data.points, 10)) ? parseInt(data.points, 10) : cfg.pointDefault;
-    return { ...cfg, points: cfg.pointLabels(n), nPoints: n };
+    cfg = { ...cfg, points: cfg.pointLabels(n), nPoints: n };
   }
+  // Einpassen: nur Gehäusebohrung messen (z.B. wenn die Buchsen sowieso neu kommen)
+  if (cfg.sideOption) cfg = { ...cfg, boreOnly: data.sides === 'bore' };
   return cfg;
 }
 
