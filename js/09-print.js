@@ -141,7 +141,7 @@ function printMeasureHtml(order, sheet, cfg) {
     <div class="pr-block">
       <div class="pr-block-head"><span>${escapeHtml(cfg.title)} <small>(Maße in mm)</small></span><span class="pr-block-sum">${escapeHtml(sum)}</span></div>
       ${specLine ? `<div class="pr-spec">Sollwerte: ${escapeHtml(specLine)}</div>` : '<div class="pr-spec">Sollwerte: ______________________________________________</div>'}
-      ${cfg.sketch ? `<div class="pr-sketch">${sketchSvg(cfg)}<span>${escapeHtml(cfg.sketch === 'liner' ? cfg.planes.length + ' Messebenen · Richtung A = längs (parallel KW), B = quer' : cfg.sketch === 'fit' ? 'Messebenen: Sitz oben (Bund) und Sitz unten (Führung) · Richtung A = längs (parallel KW), B = quer' + (cfg.boreOnly ? ' · nur Gehäusebohrung' : '') : (cfg.points.length === 1 ? 'Messung im OT' : cfg.points.length + ' Messpunkte, Pkt. 1 an KS, im Uhrzeigersinn'))}</span></div>` : ''}
+      ${cfg.sketch ? `<div class="pr-sketch">${sketchSvg(cfg)}<span>${escapeHtml(cfg.sketch === 'liner' ? cfg.planes.length + ' Messebenen · Richtung A = quer, B = längs (parallel KW)' : cfg.sketch === 'fit' ? 'Messebenen: Sitz oben (Bund) und Sitz unten (Führung) · Richtung A = quer, B = längs (parallel KW)' + (cfg.boreOnly ? ' · nur Gehäusebohrung' : '') : (cfg.points.length === 1 ? 'Messung im OT' : cfg.points.length + ' Messpunkte, Pkt. 1 an KS, im Uhrzeigersinn'))}</span></div>` : ''}
       ${table}
     </div>`;
 }
