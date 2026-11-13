@@ -223,7 +223,7 @@ function specialPrintHtml(order, sheet) {
     return `
       <div class="pr-block">
         <table class="pr-list pr-serials"><colgroup><col style="width:14%"><col style="width:19%"><col style="width:22%"><col style="width:22%"><col></colgroup>
-          <thead><tr><th>Position</th><th>Sachnummer</th><th>SN ausgebaut / vorhanden</th><th>SN eingebaut (neu)</th><th>Bemerkung</th></tr></thead>
+          <thead><tr><th>Position</th><th>Typ / Typenschild</th><th>SN ausgebaut / vorhanden</th><th>SN eingebaut (neu)</th><th>Bemerkung</th></tr></thead>
           <tbody>${groups.map(g => `<tr class="grp"><td colspan="5">${escapeHtml(g.label)}</td></tr>` + g.rows.map(r => `<tr><td>${escapeHtml(r.pos || '')}</td><td>${escapeHtml(r.partNo || '')}</td><td class="mono">${escapeHtml(r.sn || '')}</td><td class="mono">${escapeHtml(r.snNew || '')}</td><td>${escapeHtml(r.note || '')}</td></tr>`).join('')).join('')}</tbody>
         </table>
       </div>`;

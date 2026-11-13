@@ -297,7 +297,7 @@ function serialEditorHtml(order, sheet) {
             return `
             <div class="serial-row">
               <input class="sr-pos" data-bind="${p}.pos" value="${escapeHtml(r.pos || '')}" placeholder="Position" autocomplete="off">
-              <input data-bind="${p}.partNo" value="${escapeHtml(r.partNo || '')}" placeholder="Sachnummer" autocomplete="off">
+              <input data-bind="${p}.partNo" aria-label="Typ / Typenschild" value="${escapeHtml(r.partNo || '')}" placeholder="Typ / Typenschild" autocomplete="off">
               <input data-bind="${p}.sn" value="${escapeHtml(r.sn || '')}" placeholder="SN ausgebaut / vorhanden" autocomplete="off">
               <input data-bind="${p}.snNew" value="${escapeHtml(r.snNew || '')}" placeholder="SN eingebaut (neu)" autocomplete="off">
               <input class="sr-note" data-bind="${p}.note" value="${escapeHtml(r.note || '')}" placeholder="Bemerkung" autocomplete="off">
