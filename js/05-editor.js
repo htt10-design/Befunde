@@ -395,6 +395,7 @@ function saveSpecTemplate() {
   const tpl = {};
   (t.measure || []).forEach(cfg => { if (sheet.data[cfg.key] && sheet.data[cfg.key].spec) tpl[cfg.key] = JSON.parse(JSON.stringify(sheet.data[cfg.key].spec)); });
   appData.specs[k][sheet.type] = tpl;
+  appData.specsUpdated = new Date().toISOString();
   saveData(true);
   showToast('Sollwerte gemerkt – neue Blätter für ' + [e.make, e.model].filter(Boolean).join(' ') + ' werden vorausgefüllt');
 }

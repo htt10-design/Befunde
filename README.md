@@ -20,6 +20,7 @@ Blätter (je Baugruppe als **Messblatt**, **Befundblatt** oder **beides**):
 - Befunde mit Fotos auf jedem Blatt, Gesamtbewertung, Unterschrift Prüfer/Kunde
 - Druck: einheitlicher Kopf auf allen Blättern, optional Deckblatt mit Übersicht & Handlungsbedarf
 - Aufträge aus Zettel-Job übernehmen (wenn beide Apps unter derselben Adresse laufen, z.B. GitHub Pages)
+- Synchronisation über den eigenen PocketBase-Server von Zettel-Job (gleiche Anmeldung) – Büro sieht Berichte sofort; Einrichtung: `tools/pocketbase/README.md`
 - Sicherung / Auftrag als Datei (inkl. Fotos), Hell/Dunkel
 
 Starten: Ordner über einen beliebigen Webserver ausliefern (z.B. GitHub Pages) und im Handy-Browser „Zum Startbildschirm hinzufügen“.

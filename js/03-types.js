@@ -217,7 +217,7 @@ function sheetKindText(sheet) {
 // ---------- Positionen eines Messblocks ----------
 function tablePositions(order, sheet, cfg) {
   const e = order.engines[sheet.engine || 0] || newEngine();
-  const d = (sheet.data[cfg.key] = sheet.data[cfg.key] || {});
+  const d = sheet.data[cfg.key] || {};
   return positions(e, cfg.posKind, cfg.posKind === 'cyl' ? null : (parseInt(d.count, 10) || null));
 }
 

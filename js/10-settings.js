@@ -11,6 +11,7 @@ function renderSettings() {
   const specKeys = Object.keys(appData.specs || {});
   const body = document.getElementById('settings-body');
   body.innerHTML = `
+    ${syncCardHtml()}
     <div class="card">
       <h3 class="card-title">Prüfer</h3>
       <div data-root="settings">
@@ -77,6 +78,7 @@ function renderSettings() {
     </div>
     <p class="muted small-text version">Befunde ${APP_VERSION} · im Design von Zettel-Job</p>`;
   bindForm(body, () => appData.settings, () => saveData());
+  offerZettelJobLogin();
 }
 
 function setQuickInput(v) { appData.settings.quickInput = v; saveData(); }
@@ -88,14 +90,16 @@ async function onLogoInput(ev) {
   if (!f) return;
   const blob = await compressImage(f, 600, 0.9);
   appData.settings.logo = await blobToDataUrl(blob);
+  appData.settings.logoUpdated = new Date().toISOString();
   saveData(true);
   renderSettings();
 }
-function removeLogo() { appData.settings.logo = ''; saveData(true); renderSettings(); }
-function resetLogo() { appData.settings.logo = null; saveData(true); renderSettings(); }
+function removeLogo() { appData.settings.logo = ''; appData.settings.logoUpdated = new Date().toISOString(); saveData(true); renderSettings(); }
+function resetLogo() { appData.settings.logo = null; appData.settings.logoUpdated = new Date().toISOString(); saveData(true); renderSettings(); }
 async function deleteSpec(k) {
   if (!await confirmDialog('Gemerkte Sollwerte für ' + k.toUpperCase() + ' löschen?', 'Löschen', true)) return;
   delete appData.specs[k];
+  appData.specsUpdated = new Date().toISOString();
   saveData(true);
   renderSettings();
 }
@@ -164,6 +168,7 @@ async function onImportInput(ev) {
     if (!await confirmDialog('Sicherung vom ' + new Date(data.at).toLocaleString('de-DE') + ' laden? Aktuelle Daten auf diesem Gerät werden ersetzt.', 'Laden', true)) return;
     await writeFiles(data.files);
     appData = normalizeData(data.appData);
+    await resetSyncTracking(); // mit dem Server zusammenführen statt dort zu löschen
     saveData(true);
     applyTheme();
     showView('orders');
@@ -177,7 +182,7 @@ async function onImportInput(ev) {
 function createDemoOrder() {
   const order = newOrder({
     orderNo: 'SR' + todayISO().slice(2, 4) + '/000815', customer: 'Muster Reederei', vessel: 'MS Beispiel', location: 'Werft Hafen',
-    reason: 'Durchsicht nach 15.000 Bh, erhöhter Ölverbrauch',
+    reason: 'Durchsicht nach 15.000 Bh, erhöhter Ölverbrauch', demo: true,
     newbuild: 'S 1234', classification: 'DNV',
     engines: [Object.assign(newEngine(), { make: 'MTU', model: '16V 4000 M63', number: '5362001234', hours: '15120', power: '2560', rpm: '1800', layout: 'V', cylinders: 16, count: 'KS' })]
   });
