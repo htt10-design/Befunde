@@ -2,7 +2,7 @@
 
 Offline-fähige Single-Page-PWA für Mess- und Befundblätter an Motoren (Laufbuchsen, Kurbelwelle, Nockenwelle,
 Endoskopie, Düsen, Seriennummern, allgemeine Durchsicht). Design, Aufbau und Konventionen wie **Zettel-Job**
-(Schwester-App, später verknüpft). Kein Server, kein Build-Schritt, keine Abhängigkeiten. UI-Sprache und Kommentare: Deutsch.
+(Schwester-App, später verknüpft). Kein Build-Schritt, keine Abhängigkeiten. Daten lokal (offline zuerst), optional Abgleich über den eigenen PocketBase-Server von Zettel-Job (12-sync). UI-Sprache und Kommentare: Deutsch.
 
 ## Aufbau
 
@@ -18,6 +18,7 @@ Endoskopie, Düsen, Seriennummern, allgemeine Durchsicht). Design, Aufbau und Ko
 | 08-signature | Unterschrift (aus Zettel-Job übernommen) |
 | 09-print | Druck A4 im Stil der SDT-Papierblätter: `printHeadHtml` (Logo mittig, Titel unterstrichen, zweisprachige Kopftabelle Auftraggeber/Auftrags-Nr./Neubau-Nr./Klassifikation · Motorfabrikat/Motortyp/Motornr./Leistung), `printFootBlock` (Bemerkung/Empfehlung, Messwerkzeug, Seitenzahl, Datum, Unterschrift, Sonstiges), Titel über `printDocTitle` („Messblatt Überstand Laufbuchse“), Deckblatt mit Handlungsbedarf (`sheetIssues`) |
 | 11-report | Zusammengefasster **Befundbericht** je Auftrag: Button am Auftrag → Dialog (Stand der Blätter, `order.reportSummary/reportAdvice/reportRating`, Optionen Fotos/Anlagen) → Druck mit Ergebnis, Kurzfassung je Blatt (`sheetDigest`), Handlungsbedarf, Empfehlung, Fotodoku, optional alle Blätter als Anlage. **Berichtsansicht** in der App (`view-report`, `renderReportView`: gleiche HTML wie Druck, Papier per `transform: scale` auf Bildschirmbreite), `shareOrder` (Auftrag + Fotos als Datei teilen), Direktlink `#bericht=<Auftragsnr.>` / `#auftrag=…` (`openFromLink`) – für Zettel-Job |
+| 12-sync | Abgleich mit PocketBase (gleicher Server/Benutzer wie Zettel-Job, eigene Collections `bf_items`/`bf_files`, Einrichtung `tools/pocketbase/`): Einträge `order:<id>` (Kopf ohne Blätter + `sheetIds`), `sheet:<id>` (+ `orderId`), `team:specs`, `team:settings` (Logo); Hash-Vergleich gegen `syncMeta`, neuerer Stand gewinnt (`updated`/`created`), Löschen als `deleted`, Fotos ↔ `bf_files`; Beispielaufträge (`demo`) bleiben lokal; „Anmeldung von Zettel-Job übernehmen“ liest dessen `syncConfig` nur lesend |
 | 10-settings | Prüfer, Logo für den Kopf (`settings.logo`: null = SDT-Standard `img/sdt-logo.svg`, '' = ohne, sonst Data-URL), eigene Unterschrift, gemerkte Sollwerte, Sicherung/Import (mit Fotos), Beispielauftrag |
 
 ## Papier-Styles
@@ -43,6 +44,7 @@ Eintrag in `SHEET_TYPES` (03-types): `measure` (grid/points/clearance; points mi
 
 - Klassische `<script>`-Dateien, globaler Scope; aus `onclick` aufgerufene Funktionen über `Object.assign(window, …)`.
 - Vor jedem Wechsel von Blatt/Auftrag/Ansicht `commitFocus()` (steckt in `showView`, `openSheet`, `openOrder`) – sonst landet ein spätes „change“ im neuen Blatt.
+- Beim bloßen Anzeigen keine Daten anlegen/ändern (sonst hält der Abgleich es für eine Änderung); Änderungen setzen `sheet.updated`/`order.updated` (`touchSheet`/`touchOrder`).
 - Benutzertext in `innerHTML` immer mit `escapeHtml()`. Datenmodell abwärtskompatibel halten (`normalizeData`).
 - Neue Datei in `js/` → in `index.html` UND in `sw.js` `APP_SHELL_FILES`.
 - **Bei jeder Änderung an index.html / js / style.css `CACHE_VERSION` in `sw.js` hochzählen.**
@@ -52,4 +54,5 @@ Eintrag in `SHEET_TYPES` (03-types): `measure` (grid/points/clearance; points mi
 ```
 for f in js/*.js; do node --check "$f"; done
 node tools/smoke-test.js   # legt alle Blätter an, prüft Auswertung, Druck (PDF) → .smoke/
+node tools/sync-test.js    # Handy, Büro und Tablet gleichen über einen nachgebauten PocketBase-Server ab
 ```

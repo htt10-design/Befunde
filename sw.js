@@ -2,7 +2,7 @@
 //
 // WICHTIG: Bei jeder Änderung an index.html / js/*.js / style.css die
 // Versionsnummer hochzählen, sonst bekommen Nutzer die alte Version aus dem Cache.
-const CACHE_VERSION = 'befunde-v11';
+const CACHE_VERSION = 'befunde-v12';
 
 const APP_SHELL_FILES = [
   './',
@@ -20,6 +20,7 @@ const APP_SHELL_FILES = [
   './js/09-print.js',
   './js/10-settings.js',
   './js/11-report.js',
+  './js/12-sync.js',
   './img/sdt-logo.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -76,7 +76,7 @@ function orderListHtml(list, total) {
     return `
       <button class="sheet-card ${o.status === 'fertig' ? 'is-done' : ''}" onclick="openOrder('${o.id}')">
         <div class="sc-top">
-          <span class="type-pill">${o.status === 'fertig' ? 'Abgeschlossen' : 'Offen'}</span>
+          <span class="type-pill">${o.status === 'fertig' ? 'Abgeschlossen' : 'Offen'}${o.demo ? ' · Beispiel (nur auf diesem Gerät)' : ''}</span>
           <span class="sc-date">${escapeHtml(formatDate(o.date))}</span>
         </div>
         <div class="sc-title">${escapeHtml(o.orderNo || 'Ohne Auftragsnummer')}</div>
@@ -482,7 +482,7 @@ function createSheet(order, typeId, mode, engine) {
   const t = getType(typeId);
   const sheet = {
     id: uid(), type: typeId, mode: typeModes(t) ? (mode || 'beides') : null, engine: engine || 0,
-    date: todayISO(), created: new Date().toISOString(), data: {}, findings: [], rating: null, summary: '', advice: ''
+    date: todayISO(), created: new Date().toISOString(), updated: new Date().toISOString(), data: {}, findings: [], rating: null, summary: '', advice: ''
   };
   // Gemerkte Sollwerte für diesen Motortyp übernehmen
   const e = order.engines[sheet.engine] || {};

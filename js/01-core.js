@@ -104,6 +104,26 @@ async function writeData() {
     try { localStorage.setItem(BF_DB_KEY, JSON.stringify(appData)); }
     catch (e2) { showToast('Speichern fehlgeschlagen!'); console.error(e2); }
   }
+  if (typeof scheduleSync === 'function') scheduleSync(); // Änderungen bald zum Server
+}
+
+// Weitere Werte pro Gerät im selben Store (z.B. Sync-Anmeldung) – nicht Teil von appData/Backup
+async function idbPut(key, value) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(BF_DB_STORE, 'readwrite');
+    tx.objectStore(BF_DB_STORE).put(value, key);
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+}
+async function idbGet(key) {
+  const db = await openDb();
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(BF_DB_STORE, 'readonly').objectStore(BF_DB_STORE).get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
 }
 
 async function fileStore(mode, fn) {
@@ -137,6 +157,7 @@ async function initApp() {
   showView('orders');
   openFromLink();
   window.addEventListener('hashchange', openFromLink);
+  initSync();
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
     navigator.serviceWorker.register('sw.js').catch(e => console.warn('SW-Registrierung fehlgeschlagen', e));
   }
